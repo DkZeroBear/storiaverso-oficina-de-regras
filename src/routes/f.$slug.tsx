@@ -558,7 +558,16 @@ function Final({ fields, resp, me, flushAll, closed, mostrar, onBack, onSubmitte
                 <h3 className="text-lg">{f.nome}</h3>
                 <ul className="mt-2 space-y-2 text-sm">
                   {rs.map((g) => (
-                    <li key={g.participant_id}><b>{g.nome}:</b> {g.pulou ? <i>pulou</i> : g.texto || "—"}</li>
+                    <li key={g.participant_id}>
+                      <b>{g.nome}:</b>{" "}
+                      {g.pulou ? <i>pulou</i> : (
+                        <>
+                          {g.concordancia && <span className="font-medium">{({ concordo: "Concordo", ajustar: "Quero ajustar", sem_opiniao: "Não tenho opinião" } as Record<string, string>)[g.concordancia] ?? g.concordancia}{g.texto ? " — " : ""}</span>}
+                          {g.texto || (!g.concordancia && "—")}
+                          {g.referencia && <span className="block text-muted-foreground">Ref.: {g.referencia}</span>}
+                        </>
+                      )}
+                    </li>
                   ))}
                 </ul>
               </div>
