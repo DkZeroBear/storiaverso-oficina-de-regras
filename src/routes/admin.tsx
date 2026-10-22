@@ -21,7 +21,7 @@ import sample from "@/data/oficina-de-regras.json";
 type T = Database["public"]["Tables"];
 type Form = T["forms"]["Row"];
 type Field = T["form_fields"]["Row"];
-type Participant = Omit<T["participants"]["Row"], "pin_hash" | "pin_salt" | "sessao_versao">;
+type Participant = Pick<T["participants"]["Row"], "id" | "form_id" | "nome" | "status" | "ultimo_campo" | "enviado_em" | "atualizado_em" | "pin_criado_em">;
 type Resp = T["responses"]["Row"];
 type Note = T["facilitator_notes"]["Row"];
 
@@ -133,7 +133,7 @@ function FormAdmin({ form, onChanged }: { form: Form; onChanged: () => void }) {
   const load = useCallback(async () => {
     const [f, p] = await Promise.all([
       supabase.from("form_fields").select("*").eq("form_id", form.id).order("ordem"),
-      supabase.from("participants").select("id,form_id,nome,status,ultimo_campo,enviado_em,atualizado_em").eq("form_id", form.id).order("nome"),
+      supabase.from("participants").select("id,form_id,nome,status,ultimo_campo,enviado_em,atualizado_em,pin_criado_em").eq("form_id", form.id).order("nome"),
     ]);
     const fs = f.data ?? []; const ps = p.data ?? [];
     setFields(fs); setParts(ps);
@@ -172,7 +172,7 @@ function FormAdmin({ form, onChanged }: { form: Form; onChanged: () => void }) {
                 const mine = resps.filter((r) => r.participant_id === p.id);
                 return (
                   <tr key={p.id} className="border-b last:border-0">
-                    <td className="p-3">{p.nome}</td>
+                    <td className="p-3">{p.nome}<span className="block text-xs text-muted-foreground">{p.pin_criado_em ? `PIN criado em ${new Date(p.pin_criado_em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}` : "PIN pendente (redefinido)"}</span></td>
                     <td className="p-3">{mine.filter(filled).length}/{fields.length}</td>
                     <td className="p-3">{mine.filter((r) => r.pulou).length}</td>
                     <td className="p-3">{new Date(p.atualizado_em).toLocaleString("pt-BR")}</td>
@@ -255,10 +255,12 @@ function ByField({ fields, parts, resps, notes, onNoteSaved }: { fields: Field[]
 
 function ParticipantActions({ p, onDone }: { p: Participant; onDone: () => void }) {
   const [typed, setTyped] = useState("");
+  const [code, setCode] = useState<string | null>(null);
   const reset = async () => {
-    const { error } = await supabase.rpc("admin_reset_pin", { _participant_id: p.id });
-    if (error) toast.error("Falha ao redefinir PIN."); else { toast.success(`PIN de ${p.nome} redefinido. As respostas foram mantidas.`); onDone(); }
+    const { data, error } = await supabase.rpc("admin_reset_pin", { _participant_id: p.id });
+    if (error || !data) toast.error("Falha ao redefinir PIN."); else { setCode(data); onDone(); }
   };
+  const msg = code ? `Seu código para criar um novo PIN no STORIAverso: ${code}. Vale por 24 horas.` : "";
   const remove = async () => {
     const { error } = await supabase.rpc("admin_delete_participant", { _participant_id: p.id });
     if (error) toast.error("Falha ao excluir."); else { toast.success(`${p.nome} e as respostas foram excluídos.`); onDone(); }
@@ -270,11 +272,27 @@ function ParticipantActions({ p, onDone }: { p: Participant; onDone: () => void 
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Redefinir o PIN de {p.nome}?</AlertDialogTitle>
-            <AlertDialogDescription>O PIN atual deixa de valer e quem estiver conectado com esse nome sai. As respostas ficam guardadas. Na próxima entrada, a pessoa cria um PIN novo.</AlertDialogDescription>
+            <AlertDialogDescription>O PIN atual deixa de valer e quem estiver conectado com esse nome sai. As respostas ficam guardadas. Você vai receber um código de uso único para enviar à pessoa; com ele, ela cria um PIN novo.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={reset}>Redefinir PIN</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={!!code} onOpenChange={(o) => { if (!o) setCode(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Código de {p.nome}</AlertDialogTitle>
+            <AlertDialogDescription>Este código não será mostrado de novo. Envie para a pessoa; vale por 24 horas.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <p className="text-center font-mono text-3xl tracking-[0.3em]" data-testid="reset-code">{code}</p>
+          <p className="rounded-md border bg-muted p-3 text-sm">{msg}</p>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={async () => {
+              try { await navigator.clipboard.writeText(msg); toast.success("Mensagem copiada."); } catch { toast.error("Não foi possível copiar."); }
+            }}><Copy className="h-4 w-4" /> Copiar mensagem</Button>
+            <AlertDialogAction onClick={() => setCode(null)}>Fechar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

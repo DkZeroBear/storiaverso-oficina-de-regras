@@ -7,7 +7,6 @@ import {
   PIN_REGEX,
   SESSION_TTL_MS,
   hashPin,
-  isLocked,
   newSalt,
   safeEqual,
   signSession,
@@ -104,8 +103,8 @@ export const checkName = createServerFn({ method: "POST" })
       .eq("form_id", data.formId)
       .eq("nome", data.nome)
       .maybeSingle();
-    // exists = has a PIN set; a participant whose PIN was reset must create a new one
-    return { exists: !!p && p.pin_hash !== "" };
+    // exists = has a PIN set; reset = PIN was reset and needs the facilitator's one-time code
+    return { exists: !!p && p.pin_hash !== "", reset: !!p && p.pin_hash === "" };
   });
 
 export type MyResponse = {
@@ -144,16 +143,17 @@ async function loadState(pid: string, token: string): Promise<MyState> {
 }
 
 export const identify = createServerFn({ method: "POST" })
-  .inputValidator((d: { formId: string; nome: string; pin: string }) =>
+  .inputValidator((d: { formId: string; nome: string; pin: string; codigo?: string }) =>
     z
       .object({
         formId: z.string().uuid(),
         nome: z.string().trim().min(1).max(100),
         pin: z.string().regex(PIN_REGEX, "PIN deve ter 4 dígitos"),
+        codigo: z.string().trim().toUpperCase().max(12).optional(),
       })
       .parse(d),
   )
-  .handler(async ({ data }): Promise<{ ok: true; state: MyState } | { ok: false; error: string }> => {
+  .handler(async ({ data }): Promise<{ ok: true; state: MyState } | { ok: false; error: string; needCode?: boolean }> => {
     const sb = await admin();
     const { data: form } = await sb.from("forms").select("id,ativo").eq("id", data.formId).maybeSingle();
     if (!form?.ativo) return { ok: false, error: "Formulário indisponível." };
@@ -165,61 +165,68 @@ export const identify = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!inRoster) return { ok: false, error: "Nome não está na lista." };
 
-    const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    const { data: attempts } = await sb
-      .from("pin_attempts")
-      .select("tentado_em,sucesso")
-      .eq("form_id", data.formId)
-      .eq("nome", data.nome)
-      .gte("tentado_em", since);
-    const lock = isLocked(attempts ?? []);
-    if (lock.locked) {
-      const min = Math.max(1, Math.ceil(((lock.until ?? Date.now()) - Date.now()) / 60000));
-      return { ok: false, error: lockMessage(min) };
-    }
-
     const { data: p } = await sb
       .from("participants")
-      .select("id,pin_hash,pin_salt,sessao_versao")
+      .select("id,pin_hash,pin_salt,sessao_versao,reset_code_hash,reset_code_salt,reset_code_expira")
       .eq("form_id", data.formId)
       .eq("nome", data.nome)
       .maybeSingle();
 
-    let pid: string;
-    let v = 0;
+    const now = new Date().toISOString();
     if (!p) {
       const salt = newSalt();
       const { data: created, error } = await sb
         .from("participants")
-        .insert({ form_id: data.formId, nome: data.nome, pin_salt: salt, pin_hash: await hashPin(data.pin, salt) })
+        .insert({ form_id: data.formId, nome: data.nome, pin_salt: salt, pin_hash: await hashPin(data.pin, salt), pin_criado_em: now })
         .select("id")
         .single();
       if (error || !created) return { ok: false, error: "Não foi possível criar o acesso." };
-      pid = created.id;
-    } else if (p.pin_hash === "") {
-      // PIN was reset by the facilitator: this entry defines the new PIN, answers are kept
-      const salt = newSalt();
-      const { error } = await sb
-        .from("participants")
-        .update({ pin_salt: salt, pin_hash: await hashPin(data.pin, salt) })
-        .eq("id", p.id)
-        .eq("pin_hash", "");
-      if (error) return { ok: false, error: "Não foi possível criar o acesso." };
-      pid = p.id;
-      v = p.sessao_versao;
-    } else {
-      const ok = safeEqual(await hashPin(data.pin, p.pin_salt), p.pin_hash);
-      await sb.from("pin_attempts").insert({ form_id: data.formId, nome: data.nome, sucesso: ok });
-      if (!ok) {
-        const after = isLocked([...(attempts ?? []), { tentado_em: new Date().toISOString(), sucesso: false }]);
-        return { ok: false, error: after.locked ? lockMessage(10) : "PIN incorreto." };
-      }
-      pid = p.id;
-      v = p.sessao_versao;
+      const token = await signSession({ pid: created.id, fid: data.formId, v: 0, exp: Date.now() + SESSION_TTL_MS }, secret());
+      return { ok: true, state: await loadState(created.id, token) };
     }
-    const token = await signSession({ pid, fid: data.formId, v, exp: Date.now() + SESSION_TTL_MS }, secret());
-    return { ok: true, state: await loadState(pid, token) };
+
+    // Atomic rate limit: records a failure up front, serialized per form+name
+    const { data: gate, error: gateErr } = await sb.rpc("pin_attempt_gate", { _form: data.formId, _nome: data.nome });
+    if (gateErr || !gate) return { ok: false, error: "Não foi possível entrar. Tente de novo." };
+    if (gate.startsWith("bloqueado")) {
+      const until = Date.parse(gate.replace("bloqueado até ", ""));
+      return { ok: false, error: lockMessage(Math.max(1, Math.ceil((until - Date.now()) / 60000))) };
+    }
+    const markOk = () => sb.from("pin_attempts").insert({ form_id: data.formId, nome: data.nome, sucesso: true });
+
+    let v = p.sessao_versao;
+    if (p.pin_hash === "") {
+      // PIN was reset: requires the facilitator's one-time code
+      if (!data.codigo) return { ok: false, needCode: true, error: "Digite o código que o facilitador te enviou." };
+      if (!p.reset_code_hash) return { ok: false, error: "Código inválido. Peça um novo ao facilitador." };
+      if (!p.reset_code_expira || Date.parse(p.reset_code_expira) < Date.now())
+        return { ok: false, error: "Código vencido. Peça um novo ao facilitador." };
+      if (!safeEqual(await sha256Hex(p.reset_code_salt + data.codigo), p.reset_code_hash))
+        return { ok: false, error: "Código incorreto." };
+      const salt = newSalt();
+      v = p.sessao_versao + 1;
+      const { data: upd, error } = await sb
+        .from("participants")
+        .update({
+          pin_salt: salt, pin_hash: await hashPin(data.pin, salt), pin_criado_em: now,
+          reset_code_hash: "", reset_code_salt: "", reset_code_expira: null, sessao_versao: v,
+        })
+        .eq("id", p.id)
+        .eq("reset_code_hash", p.reset_code_hash)
+        .select("id");
+      if (error || !upd?.length) return { ok: false, error: "Código inválido. Peça um novo ao facilitador." };
+    } else if (!safeEqual(await hashPin(data.pin, p.pin_salt), p.pin_hash)) {
+      return { ok: false, error: "PIN incorreto." };
+    }
+    await markOk();
+    const token = await signSession({ pid: p.id, fid: data.formId, v, exp: Date.now() + SESSION_TTL_MS }, secret());
+    return { ok: true, state: await loadState(p.id, token) };
   });
+
+async function sha256Hex(s: string) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 function lockMessage(min: number) {
   return `Este nome foi bloqueado por ${min} min depois de 5 PINs errados. Tente de novo mais tarde ou peça ao facilitador para redefinir seu PIN.`;
@@ -324,8 +331,11 @@ export const getGroupResponses = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const s = await auth(data.token);
     const sb = await admin();
-    const { data: form } = await sb.from("forms").select("mostrar_respostas").eq("id", s.fid).single();
-    if (!form?.mostrar_respostas) return null;
+    const [{ data: form }, { data: me }] = await Promise.all([
+      sb.from("forms").select("mostrar_respostas").eq("id", s.fid).single(),
+      sb.from("participants").select("status").eq("id", s.pid).single(),
+    ]);
+    if (!form?.mostrar_respostas || me?.status !== "enviado") return null;
     const { data: ps } = await sb.from("participants").select("id,nome").eq("form_id", s.fid);
     const ids = (ps ?? []).map((p) => p.id);
     if (!ids.length) return [];
