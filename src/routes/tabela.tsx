@@ -1,5 +1,5 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { getLatestSlug, getPublicForm } from "@/lib/oficina.functions";
+import { getLatestPublicForm } from "@/lib/oficina.functions";
 import { SYSTEMS, fieldIcon } from "@/lib/systems";
 
 export const Route = createFileRoute("/tabela")({
@@ -14,8 +14,7 @@ export const Route = createFileRoute("/tabela")({
     ],
   }),
   loader: async () => {
-    const slug = await getLatestSlug();
-    const form = slug ? await getPublicForm({ data: { slug } }) : null;
+    const form = await getLatestPublicForm();
     if (!form) throw notFound();
     return form;
   },
