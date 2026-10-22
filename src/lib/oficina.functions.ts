@@ -237,8 +237,11 @@ async function checkToken(token: string) {
   const s = await verifySession(token, secret());
   if (!s) return null;
   const sb = await admin();
-  const { data: p } = await sb.from("participants").select("form_id,sessao_versao").eq("id", s.pid).maybeSingle();
+  const { data: p } = await sb.from("participants").select("form_id,nome,sessao_versao").eq("id", s.pid).maybeSingle();
   if (!p || p.form_id !== s.fid || p.sessao_versao !== (s.v ?? 0)) return null;
+  // Removing a name from the roster revokes access: open sessions of that name stop working.
+  const { data: inRoster } = await sb.from("form_roster").select("id").eq("form_id", p.form_id).eq("nome", p.nome).maybeSingle();
+  if (!inRoster) return null;
   return s;
 }
 
