@@ -1,0 +1,298 @@
+import { createServerFn } from "@tanstack/react-start";
+import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
+import type { Database } from "@/integrations/supabase/types";
+import {
+  PIN_REGEX,
+  SESSION_TTL_MS,
+  hashPin,
+  isLocked,
+  newSalt,
+  safeEqual,
+  signSession,
+  verifySession,
+} from "@/lib/security";
+
+function publicClient() {
+  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
+  return createClient<Database>(process.env["SUPABASE_URL"]!, key, {
+    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+    global: {
+      fetch: (input, init) => {
+        const h = new Headers(init?.headers);
+        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) h.delete("Authorization");
+        h.set("apikey", key);
+        return fetch(input, { ...init, headers: h });
+      },
+    },
+  });
+}
+
+async function admin() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
+}
+
+function secret() {
+  const s = process.env["SESSION_SECRET"];
+  if (!s) throw new Error("SESSION_SECRET ausente");
+  return s;
+}
+
+export type PublicField = Database["public"]["Tables"]["form_fields"]["Row"];
+export type PublicForm = {
+  id: string;
+  slug: string;
+  titulo: string;
+  introducao: string;
+  prazo: string | null;
+  mostrar_respostas: boolean;
+  fields: PublicField[];
+  roster: string[];
+};
+
+/* ---------- Public reads ---------- */
+
+export const getLatestSlug = createServerFn({ method: "GET" }).handler(async () => {
+  const { data } = await publicClient()
+    .from("forms")
+    .select("slug")
+    .eq("ativo", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.slug ?? null;
+});
+
+export const getPublicForm = createServerFn({ method: "GET" })
+  .inputValidator((d: { slug: string }) => z.object({ slug: z.string().min(1).max(80) }).parse(d))
+  .handler(async ({ data }): Promise<PublicForm | null> => {
+    const sb = publicClient();
+    const { data: form } = await sb
+      .from("forms")
+      .select("id,slug,titulo,introducao,prazo,mostrar_respostas")
+      .eq("slug", data.slug)
+      .eq("ativo", true)
+      .maybeSingle();
+    if (!form) return null;
+    const [{ data: fields }, { data: roster }] = await Promise.all([
+      sb.from("form_fields").select("*").eq("form_id", form.id).order("ordem"),
+      sb.from("form_roster").select("nome").eq("form_id", form.id).order("nome"),
+    ]);
+    return { ...form, fields: fields ?? [], roster: (roster ?? []).map((r) => r.nome) };
+  });
+
+/* ---------- Participant identity ---------- */
+
+export const checkName = createServerFn({ method: "POST" })
+  .inputValidator((d: { formId: string; nome: string }) =>
+    z.object({ formId: z.string().uuid(), nome: z.string().trim().min(1).max(100) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const sb = await admin();
+    const { data: p } = await sb
+      .from("participants")
+      .select("id")
+      .eq("form_id", data.formId)
+      .eq("nome", data.nome)
+      .maybeSingle();
+    return { exists: !!p };
+  });
+
+export type MyResponse = {
+  field_id: string;
+  texto: string;
+  referencia: string;
+  pulou: boolean;
+  concordancia: "concordo" | "ajustar" | "sem_opiniao" | null;
+};
+export type MyState = {
+  token: string;
+  nome: string;
+  status: "rascunho" | "enviado";
+  ultimo_campo: number;
+  responses: MyResponse[];
+};
+
+async function loadState(pid: string, token: string): Promise<MyState> {
+  const sb = await admin();
+  const { data: p } = await sb
+    .from("participants")
+    .select("nome,status,ultimo_campo")
+    .eq("id", pid)
+    .single();
+  const { data: rs } = await sb
+    .from("responses")
+    .select("field_id,texto,referencia,pulou,concordancia")
+    .eq("participant_id", pid);
+  return {
+    token,
+    nome: p!.nome,
+    status: p!.status as MyState["status"],
+    ultimo_campo: p!.ultimo_campo,
+    responses: (rs ?? []) as MyResponse[],
+  };
+}
+
+export const identify = createServerFn({ method: "POST" })
+  .inputValidator((d: { formId: string; nome: string; pin: string }) =>
+    z
+      .object({
+        formId: z.string().uuid(),
+        nome: z.string().trim().min(1).max(100),
+        pin: z.string().regex(PIN_REGEX, "PIN deve ter 4 dígitos"),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }): Promise<{ ok: true; state: MyState } | { ok: false; error: string }> => {
+    const sb = await admin();
+    const { data: form } = await sb.from("forms").select("id,ativo").eq("id", data.formId).maybeSingle();
+    if (!form?.ativo) return { ok: false, error: "Formulário indisponível." };
+    const { data: inRoster } = await sb
+      .from("form_roster")
+      .select("id")
+      .eq("form_id", data.formId)
+      .eq("nome", data.nome)
+      .maybeSingle();
+    if (!inRoster) return { ok: false, error: "Nome não está na lista." };
+
+    const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { data: attempts } = await sb
+      .from("pin_attempts")
+      .select("tentado_em,sucesso")
+      .eq("form_id", data.formId)
+      .eq("nome", data.nome)
+      .gte("tentado_em", since);
+    const lock = isLocked(attempts ?? []);
+    if (lock.locked) {
+      const min = Math.max(1, Math.ceil(((lock.until ?? Date.now()) - Date.now()) / 60000));
+      return { ok: false, error: `Muitas tentativas. Tente de novo em ${min} min.` };
+    }
+
+    const { data: p } = await sb
+      .from("participants")
+      .select("id,pin_hash,pin_salt")
+      .eq("form_id", data.formId)
+      .eq("nome", data.nome)
+      .maybeSingle();
+
+    let pid: string;
+    if (!p) {
+      const salt = newSalt();
+      const { data: created, error } = await sb
+        .from("participants")
+        .insert({ form_id: data.formId, nome: data.nome, pin_salt: salt, pin_hash: await hashPin(data.pin, salt) })
+        .select("id")
+        .single();
+      if (error || !created) return { ok: false, error: "Não foi possível criar o acesso." };
+      pid = created.id;
+    } else {
+      const ok = safeEqual(await hashPin(data.pin, p.pin_salt), p.pin_hash);
+      await sb.from("pin_attempts").insert({ form_id: data.formId, nome: data.nome, sucesso: ok });
+      if (!ok) return { ok: false, error: "PIN incorreto." };
+      pid = p.id;
+    }
+    const token = await signSession({ pid, fid: data.formId, exp: Date.now() + SESSION_TTL_MS }, secret());
+    return { ok: true, state: await loadState(pid, token) };
+  });
+
+const tokenSchema = z.string().min(10).max(2000);
+
+async function auth(token: string) {
+  const s = await verifySession(token, secret());
+  if (!s) throw new Error("Sessão expirada. Entre de novo com nome e PIN.");
+  return s;
+}
+
+async function assertOpen(fid: string) {
+  const sb = await admin();
+  const { data } = await sb.from("forms").select("prazo,ativo").eq("id", fid).single();
+  if (!data?.ativo) throw new Error("Formulário indisponível.");
+  if (data.prazo && new Date(data.prazo).getTime() < Date.now()) throw new Error("O prazo de envio terminou.");
+}
+
+export const resume = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string }) => z.object({ token: tokenSchema }).parse(d))
+  .handler(async ({ data }) => {
+    const s = await verifySession(data.token, secret());
+    if (!s) return null;
+    return { fid: s.fid, state: await loadState(s.pid, data.token) };
+  });
+
+export const saveResponse = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        token: tokenSchema,
+        field_id: z.string().uuid(),
+        texto: z.string().max(1200),
+        referencia: z.string().max(200),
+        pulou: z.boolean(),
+        concordancia: z.enum(["concordo", "ajustar", "sem_opiniao"]).nullable(),
+        ultimo_campo: z.number().int().min(0).max(500),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const s = await auth(data.token);
+    await assertOpen(s.fid);
+    const sb = await admin();
+    const { data: f } = await sb.from("form_fields").select("form_id").eq("id", data.field_id).single();
+    if (f?.form_id !== s.fid) throw new Error("Campo inválido.");
+    const now = new Date().toISOString();
+    const { error } = await sb.from("responses").upsert(
+      {
+        participant_id: s.pid,
+        field_id: data.field_id,
+        texto: data.pulou ? "" : data.texto,
+        referencia: data.pulou ? "" : data.referencia,
+        pulou: data.pulou,
+        concordancia: data.concordancia,
+        atualizado_em: now,
+      },
+      { onConflict: "participant_id,field_id" },
+    );
+    if (error) throw new Error("Falha ao salvar.");
+    await sb.from("participants").update({ atualizado_em: now, ultimo_campo: data.ultimo_campo }).eq("id", s.pid);
+    return { savedAt: now };
+  });
+
+export const saveProgress = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ token: tokenSchema, ultimo_campo: z.number().int().min(0).max(500) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const s = await auth(data.token);
+    const sb = await admin();
+    await sb.from("participants").update({ ultimo_campo: data.ultimo_campo }).eq("id", s.pid);
+    return { ok: true };
+  });
+
+export const submitResponses = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string }) => z.object({ token: tokenSchema }).parse(d))
+  .handler(async ({ data }) => {
+    const s = await auth(data.token);
+    await assertOpen(s.fid);
+    const sb = await admin();
+    const now = new Date().toISOString();
+    await sb.from("participants").update({ status: "enviado", enviado_em: now, atualizado_em: now }).eq("id", s.pid);
+    return { enviado_em: now };
+  });
+
+export const getGroupResponses = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string }) => z.object({ token: tokenSchema }).parse(d))
+  .handler(async ({ data }) => {
+    const s = await auth(data.token);
+    const sb = await admin();
+    const { data: form } = await sb.from("forms").select("mostrar_respostas").eq("id", s.fid).single();
+    if (!form?.mostrar_respostas) return null;
+    const { data: ps } = await sb.from("participants").select("id,nome").eq("form_id", s.fid);
+    const ids = (ps ?? []).map((p) => p.id);
+    if (!ids.length) return [];
+    const { data: rs } = await sb
+      .from("responses")
+      .select("participant_id,field_id,texto,referencia,pulou,concordancia")
+      .in("participant_id", ids);
+    const names = new Map((ps ?? []).map((p) => [p.id, p.nome]));
+    return (rs ?? []).map((r) => ({ ...r, nome: names.get(r.participant_id) ?? "?" }));
+  });
