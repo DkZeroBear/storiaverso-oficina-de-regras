@@ -81,10 +81,10 @@ describe("toMarkdown line breaks", () => {
     const lines = md.split("\n");
     const start = lines.findIndex((l) => l.startsWith("- Ana:"));
     expect(start).toBeGreaterThan(-1);
-    expect(lines[start].replace(/ +$/, "")).toBe("- Ana: parágrafo um");
-    expect(lines[start + 1]).toBe("");
-    expect(lines[start + 2]).toBe("  parágrafo dois");
-    expect(lines[start + 3]).toBe("- Bruno: resposta do Bruno");
+    expect(lines.slice(start, start + 4).map((l) => l.replace(/ +$/, ""))).toEqual([
+      "- Ana: parágrafo um", "", "  parágrafo dois", "- Bruno: resposta do Bruno",
+    ]);
+
     expect(md).toContain("linha A  \nlinha B");
     expect(md).toContain("decisão X  \ndecisão Y");
   });
