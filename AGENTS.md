@@ -8,3 +8,8 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Architecture rules
+- Participant data (participants/responses) is read/written only via server functions in src/lib/oficina.functions.ts using a signed HMAC session token; anon has no policies on those tables — keeps PIN users out of the Data API.
+- Admin UI (/admin) uses the browser client and relies on RLS `has_role(auth.uid(),'admin')`; the first auth user created gets the admin role via trigger, since public signup is disabled.
+- Forms are data-driven (forms/form_fields/form_roster); new forms come from JSON validated by src/lib/form-json.ts — never hardcode form content in components.
