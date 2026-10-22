@@ -175,7 +175,7 @@ export const identify = createServerFn({ method: "POST" })
     const lock = isLocked(attempts ?? []);
     if (lock.locked) {
       const min = Math.max(1, Math.ceil(((lock.until ?? Date.now()) - Date.now()) / 60000));
-      return { ok: false, error: `Muitas tentativas. Tente de novo em ${min} min.` };
+      return { ok: false, error: lockMessage(min) };
     }
 
     const { data: p } = await sb
@@ -210,13 +210,20 @@ export const identify = createServerFn({ method: "POST" })
     } else {
       const ok = safeEqual(await hashPin(data.pin, p.pin_salt), p.pin_hash);
       await sb.from("pin_attempts").insert({ form_id: data.formId, nome: data.nome, sucesso: ok });
-      if (!ok) return { ok: false, error: "PIN incorreto." };
+      if (!ok) {
+        const after = isLocked([...(attempts ?? []), { tentado_em: new Date().toISOString(), sucesso: false }]);
+        return { ok: false, error: after.locked ? lockMessage(10) : "PIN incorreto." };
+      }
       pid = p.id;
       v = p.sessao_versao;
     }
     const token = await signSession({ pid, fid: data.formId, v, exp: Date.now() + SESSION_TTL_MS }, secret());
     return { ok: true, state: await loadState(pid, token) };
   });
+
+function lockMessage(min: number) {
+  return `Este nome foi bloqueado por ${min} min depois de 5 PINs errados. Tente de novo mais tarde ou peça ao facilitador para redefinir seu PIN.`;
+}
 
 const tokenSchema = z.string().min(10).max(2000);
 
