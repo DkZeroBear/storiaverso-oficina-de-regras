@@ -16,9 +16,6 @@ export type MyExport = {
 export const formatNow = (d: Date) =>
   d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" }) + " (Brasília)";
 
-/** Multi-line escape: keeps line breaks, escapes Markdown specials per line. */
-const mdBlock = (v: string) => v.split(/\r?\n/).map((l) => mdEscape(l)).join("  \n");
-
 function grouped(e: MyExport) {
   const byField = new Map(e.responses.map((r) => [r.field_id, r]));
   const blocks: { nome: string; items: { f: MyExportField; r: MyExportResp | undefined }[] }[] = [];

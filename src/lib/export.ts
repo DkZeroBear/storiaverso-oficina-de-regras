@@ -28,7 +28,7 @@ export function toCSV(fields: ExpField[], rs: ExpResp[]): string {
       const f = byId.get(r.field_id)!;
       return [f.bloco, f.nome, r.nome, r.texto, r.referencia, r.pulou ? "sim" : "não", r.concordancia ?? ""].map(csvCell).join(",");
     });
-  return "﻿" + [head.join(","), ...rows].join("\n");
+  return "\uFEFF" + [head.join(","), ...rows].join("\n");
 }
 
 export function toMarkdown(titulo: string, fields: ExpField[], rs: ExpResp[], notes: ExpNote[]): string {
