@@ -4,7 +4,14 @@ export type ExpResp = {
 };
 export type ExpNote = { field_id: string; sintese: string; status: string; decisao_final: string };
 
-const csvCell = (v: string) => `"${v.replace(/"/g, '""')}"`;
+/** Neutralizes spreadsheet formulas (=, +, -, @) and quotes the cell. */
+export const csvCell = (v: string) => {
+  const safe = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+  return `"${safe.replace(/"/g, '""')}"`;
+};
+
+/** Escapes Markdown special characters so pasted text renders literally. */
+export const mdEscape = (v: string) => v.replace(/\r?\n+/g, " ").replace(/([\\`*_{}\[\]()#+\-.!|<>~])/g, "\\$1");
 
 export function toCSV(fields: ExpField[], rs: ExpResp[]): string {
   const byId = new Map(fields.map((f) => [f.id, f]));
@@ -22,14 +29,14 @@ export function toCSV(fields: ExpField[], rs: ExpResp[]): string {
 const CONC: Record<string, string> = { concordo: "Concordo", ajustar: "Quero ajustar", sem_opiniao: "Não tenho opinião" };
 
 export function toMarkdown(titulo: string, fields: ExpField[], rs: ExpResp[], notes: ExpNote[]): string {
-  const out = [`# ${titulo}`, ""];
+  const out = [`# ${mdEscape(titulo)}`, ""];
   for (const f of [...fields].sort((a, b) => a.ordem - b.ordem)) {
     const n = notes.find((x) => x.field_id === f.id);
-    out.push(`## ${f.nome}`, "", `**Status:** ${n?.status ?? "EM ABERTO"}`, "", `**Síntese:** ${n?.sintese || "—"}`, "");
-    if (n?.decisao_final) out.push(`**Decisão final:** ${n.decisao_final}`, "");
+    out.push(`## ${mdEscape(f.nome)}`, "", `**Status:** ${mdEscape(n?.status ?? "EM ABERTO")}`, "", `**Síntese:** ${n?.sintese ? mdEscape(n.sintese) : "—"}`, "");
+    if (n?.decisao_final) out.push(`**Decisão final:** ${mdEscape(n.decisao_final)}`, "");
     for (const r of rs.filter((x) => x.field_id === f.id).sort((a, b) => a.nome.localeCompare(b.nome))) {
-      const txt = r.pulou ? "_(pulou)_" : [r.concordancia ? `[${CONC[r.concordancia]}]` : "", r.texto.replace(/\n+/g, " ")].filter(Boolean).join(" ") || "—";
-      out.push(`- ${r.nome}: ${txt}${r.referencia ? ` (ref.: ${r.referencia})` : ""}`);
+      const txt = r.pulou ? "_(pulou)_" : [r.concordancia ? `[${CONC[r.concordancia]}]` : "", mdEscape(r.texto)].filter(Boolean).join(" ") || "—";
+      out.push(`- ${mdEscape(r.nome)}: ${txt}${r.referencia ? ` (ref.: ${mdEscape(r.referencia)})` : ""}`);
     }
     out.push("");
   }

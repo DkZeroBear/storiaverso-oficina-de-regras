@@ -92,11 +92,12 @@ export const checkName = createServerFn({ method: "POST" })
     const sb = await admin();
     const { data: p } = await sb
       .from("participants")
-      .select("id")
+      .select("pin_hash")
       .eq("form_id", data.formId)
       .eq("nome", data.nome)
       .maybeSingle();
-    return { exists: !!p };
+    // exists = has a PIN set; a participant whose PIN was reset must create a new one
+    return { exists: !!p && p.pin_hash !== "" };
   });
 
 export type MyResponse = {
@@ -171,12 +172,13 @@ export const identify = createServerFn({ method: "POST" })
 
     const { data: p } = await sb
       .from("participants")
-      .select("id,pin_hash,pin_salt")
+      .select("id,pin_hash,pin_salt,sessao_versao")
       .eq("form_id", data.formId)
       .eq("nome", data.nome)
       .maybeSingle();
 
     let pid: string;
+    let v = 0;
     if (!p) {
       const salt = newSalt();
       const { data: created, error } = await sb
@@ -186,20 +188,42 @@ export const identify = createServerFn({ method: "POST" })
         .single();
       if (error || !created) return { ok: false, error: "Não foi possível criar o acesso." };
       pid = created.id;
+    } else if (p.pin_hash === "") {
+      // PIN was reset by the facilitator: this entry defines the new PIN, answers are kept
+      const salt = newSalt();
+      const { error } = await sb
+        .from("participants")
+        .update({ pin_salt: salt, pin_hash: await hashPin(data.pin, salt) })
+        .eq("id", p.id)
+        .eq("pin_hash", "");
+      if (error) return { ok: false, error: "Não foi possível criar o acesso." };
+      pid = p.id;
+      v = p.sessao_versao;
     } else {
       const ok = safeEqual(await hashPin(data.pin, p.pin_salt), p.pin_hash);
       await sb.from("pin_attempts").insert({ form_id: data.formId, nome: data.nome, sucesso: ok });
       if (!ok) return { ok: false, error: "PIN incorreto." };
       pid = p.id;
+      v = p.sessao_versao;
     }
-    const token = await signSession({ pid, fid: data.formId, exp: Date.now() + SESSION_TTL_MS }, secret());
+    const token = await signSession({ pid, fid: data.formId, v, exp: Date.now() + SESSION_TTL_MS }, secret());
     return { ok: true, state: await loadState(pid, token) };
   });
 
 const tokenSchema = z.string().min(10).max(2000);
 
-async function auth(token: string) {
+/** Valid signature + not expired + participant still exists in that form + PIN not reset since issue. */
+async function checkToken(token: string) {
   const s = await verifySession(token, secret());
+  if (!s) return null;
+  const sb = await admin();
+  const { data: p } = await sb.from("participants").select("form_id,sessao_versao").eq("id", s.pid).maybeSingle();
+  if (!p || p.form_id !== s.fid || p.sessao_versao !== (s.v ?? 0)) return null;
+  return s;
+}
+
+async function auth(token: string) {
+  const s = await checkToken(token);
   if (!s) throw new Error("Sessão expirada. Entre de novo com nome e PIN.");
   return s;
 }
@@ -214,7 +238,7 @@ async function assertOpen(fid: string) {
 export const resume = createServerFn({ method: "POST" })
   .inputValidator((d: { token: string }) => z.object({ token: tokenSchema }).parse(d))
   .handler(async ({ data }) => {
-    const s = await verifySession(data.token, secret());
+    const s = await checkToken(data.token);
     if (!s) return null;
     return { fid: s.fid, state: await loadState(s.pid, data.token) };
   });
@@ -263,6 +287,7 @@ export const saveProgress = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const s = await auth(data.token);
+    try { await assertOpen(s.fid); } catch { return { ok: false }; }
     const sb = await admin();
     await sb.from("participants").update({ ultimo_campo: data.ultimo_campo }).eq("id", s.pid);
     return { ok: true };
