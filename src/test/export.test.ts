@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { csvCell, mdEscape, toCSV } from "@/lib/export";
+import { csvCell, mdEscape, toCSV, toMarkdown } from "@/lib/export";
 import { signSession, verifySession } from "@/lib/security";
 
 describe("CSV formula neutralization", () => {
@@ -56,7 +56,7 @@ describe("participant own export", () => {
     const md = myToMarkdown(e, now);
     expect(md).toContain("Rascunho (não enviado)");
     expect(md).toContain("_(pulado)_");
-    expect(md).toContain("**Concordância:** quero ajustar");
+    expect(md).toContain("**Concordância:** Quero ajustar");
     expect(md).toContain("\\*forte\\*");
     expect(myToText(e, now)).toContain("RASCUNHO (NÃO ENVIADO)");
   });
