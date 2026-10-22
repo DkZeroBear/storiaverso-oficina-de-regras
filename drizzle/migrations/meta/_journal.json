@@ -36,6 +36,13 @@
       "when": 1792680685043,
       "tag": "0004_admin_pin_reset_delete_essencial",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792680843187,
+      "tag": "0005_harden_anon_grants",
+      "breakpoints": true
     }
   ]
 }
