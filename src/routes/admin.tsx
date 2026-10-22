@@ -152,12 +152,12 @@ function FormAdmin({ form, onChanged }: { form: Form; onChanged: () => void }) {
   return (
     <Tabs defaultValue="campos" className="mt-6">
       <div className="flex flex-wrap items-center gap-2">
-        <TabsList className="flex-wrap">
+        <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="campos">Por campo</TabsTrigger>
           <TabsTrigger value="geral">Visão geral</TabsTrigger>
           <TabsTrigger value="config">Configurações</TabsTrigger>
         </TabsList>
-        <div className="ml-auto flex gap-2">
+        <div className="flex gap-2 sm:ml-auto">
           <Button variant="outline" size="sm" onClick={() => download(`${form.slug}.csv`, toCSV(fields, expResps), "text/csv;charset=utf-8")}><Download className="h-4 w-4" /> CSV</Button>
           <Button variant="outline" size="sm" onClick={() => download(`${form.slug}.md`, toMarkdown(form.titulo, fields, expResps, notes), "text/markdown;charset=utf-8")}><Download className="h-4 w-4" /> Markdown</Button>
         </div>
