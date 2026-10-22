@@ -336,3 +336,27 @@ export const getGroupResponses = createServerFn({ method: "POST" })
     const names = new Map((ps ?? []).map((p) => [p.id, p.nome]));
     return (rs ?? []).map((r) => ({ ...r, nome: names.get(r.participant_id) ?? "?" }));
   });
+
+/** The caller's own answers only (R5). Works after the deadline (no assertOpen). No PIN/hash/salt/token/notes. */
+export const exportMine = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string }) => z.object({ token: tokenSchema }).parse(d))
+  .handler(async ({ data }) => {
+    const s = await auth(data.token);
+    const sb = await admin();
+    const [{ data: form }, { data: fields }, { data: p }, { data: rs }] = await Promise.all([
+      sb.from("forms").select("titulo").eq("id", s.fid).single(),
+      sb.from("form_fields").select("id,nome,bloco,ordem,status").eq("form_id", s.fid),
+      sb.from("participants").select("nome,status").eq("id", s.pid).single(),
+      sb.from("responses").select("field_id,texto,referencia,pulou,concordancia").eq("participant_id", s.pid),
+    ]);
+    if (!form || !p) throw new Error("Não foi possível exportar.");
+    return {
+      titulo: form.titulo,
+      nome: p.nome,
+      rascunho: p.status !== "enviado",
+      fields: (fields ?? []).map((f) => ({ id: f.id, nome: f.nome, bloco: f.bloco, ordem: f.ordem, status: f.status })),
+      responses: (rs ?? []).map((r) => ({
+        field_id: r.field_id, texto: r.texto, referencia: r.referencia, pulou: r.pulou, concordancia: r.concordancia,
+      })),
+    };
+  });
