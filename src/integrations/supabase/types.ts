@@ -49,6 +49,7 @@ export type Database = {
           chave: string
           comparativo: Json
           definicao_atual: string | null
+          essencial: boolean
           exemplo: string
           form_id: string
           id: string
@@ -63,6 +64,7 @@ export type Database = {
           chave: string
           comparativo?: Json
           definicao_atual?: string | null
+          essencial?: boolean
           exemplo?: string
           form_id: string
           id?: string
@@ -77,6 +79,7 @@ export type Database = {
           chave?: string
           comparativo?: Json
           definicao_atual?: string | null
+          essencial?: boolean
           exemplo?: string
           form_id?: string
           id?: string
@@ -164,6 +167,7 @@ export type Database = {
           nome: string
           pin_hash: string
           pin_salt: string
+          sessao_versao: number
           status: string
           ultimo_campo: number
         }
@@ -175,6 +179,7 @@ export type Database = {
           nome: string
           pin_hash: string
           pin_salt: string
+          sessao_versao?: number
           status?: string
           ultimo_campo?: number
         }
@@ -186,6 +191,7 @@ export type Database = {
           nome?: string
           pin_hash?: string
           pin_salt?: string
+          sessao_versao?: number
           status?: string
           ultimo_campo?: number
         }
@@ -302,6 +308,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_participant: {
+        Args: { _participant_id: string }
+        Returns: undefined
+      }
+      admin_reset_pin: { Args: { _participant_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

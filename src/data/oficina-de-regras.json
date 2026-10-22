@@ -3,7 +3,14 @@
   "titulo": "Oficina de Regras",
   "introducao": "Cada pessoa vai preencher a coluna \"STORIAverso\" de uma tabela comparativa de mecânicas de RPG. Não existe resposta certa. O objetivo é reunir ideias para decidirmos juntos.",
   "prazo": "2026-11-15T23:59:00-03:00",
-  "nomes": ["Rodolfo", "Diogo", "Lorena", "Lyvia", "Deivi", "Yuri"],
+  "nomes": [
+    "Rodolfo",
+    "Diogo",
+    "Lorena",
+    "Lyvia",
+    "Deivi",
+    "Yuri"
+  ],
   "campos": [
     {
       "bloco": "A · Motor de resolução",
@@ -13,7 +20,14 @@
       "o_que_e": "A regra principal de como se decide se uma ação dá certo: quais dados se rolam e como se calcula o resultado.",
       "exemplo": "Rola-se 2d8 e soma-se o nível de Pilotagem. O resultado é comparado com a tempestade do dia.",
       "pergunta": "Que dado ou combinação de dados deve decidir o resultado das ações no nosso jogo, e por quê?",
-      "comparativo": { "dnd": "1d20 + bônus", "ordem": "pool de d20, mantém o maior", "fabula": "dois dados, soma os resultados", "tdet": "1–3d6 + atributo", "swade": "dado de traço + Wild Die" }
+      "comparativo": {
+        "dnd": "1d20 + bônus",
+        "ordem": "pool de d20, mantém o maior",
+        "fabula": "dois dados, soma os resultados",
+        "tdet": "1–3d6 + atributo",
+        "swade": "dado de traço + Wild Die"
+      },
+      "essencial": true
     },
     {
       "bloco": "A · Motor de resolução",
@@ -23,7 +37,14 @@
       "o_que_e": "Quais tipos de dado aparecem na mesa (d4, d6, d8, d10, d12, d20…).",
       "exemplo": "Só d6 e d12: o d6 para tarefas comuns e o d12 para as heróicas.",
       "pergunta": "Quais dados usaremos e que papel cada um tem?",
-      "comparativo": { "dnd": "d20", "ordem": "d20", "fabula": "d6, d8, d10, d12", "tdet": "d6", "swade": "d4, d6, d8, d10, d12" }
+      "comparativo": {
+        "dnd": "d20",
+        "ordem": "d20",
+        "fabula": "d6, d8, d10, d12",
+        "tdet": "d6",
+        "swade": "d4, d6, d8, d10, d12"
+      },
+      "essencial": false
     },
     {
       "bloco": "A · Motor de resolução",
@@ -33,7 +54,14 @@
       "o_que_e": "As características básicas que descrevem o personagem (força, mente, etc.). Poucos atributos deixam a ficha simples; muitos permitem mais especialização.",
       "exemplo": "Três atributos: Vento (agilidade), Casco (resistência) e Bússola (percepção).",
       "pergunta": "Quantos atributos o jogo deve ter e quais são, dado o nosso mundo?",
-      "comparativo": { "dnd": "6", "ordem": "5", "fabula": "4", "tdet": "3", "swade": "5" }
+      "comparativo": {
+        "dnd": "6",
+        "ordem": "5",
+        "fabula": "4",
+        "tdet": "3",
+        "swade": "5"
+      },
+      "essencial": true
     },
     {
       "bloco": "A · Motor de resolução",
@@ -43,7 +71,14 @@
       "o_que_e": "Como o valor de um atributo entra na rolagem (somando número, mudando o tamanho do dado ou a quantidade de dados).",
       "exemplo": "Cada ponto de Vento troca o dado de Pilotagem por um maior (d4, d6, d8…).",
       "pergunta": "Como o atributo deve influenciar a rolagem?",
-      "comparativo": { "dnd": "modificadores numéricos", "ordem": "quantidade de d20", "fabula": "tamanho dos dados", "tdet": "valores numéricos diretos", "swade": "tamanho do dado" }
+      "comparativo": {
+        "dnd": "modificadores numéricos",
+        "ordem": "quantidade de d20",
+        "fabula": "tamanho dos dados",
+        "tdet": "valores numéricos diretos",
+        "swade": "tamanho do dado"
+      },
+      "essencial": true
     },
     {
       "bloco": "A · Motor de resolução",
@@ -53,7 +88,14 @@
       "o_que_e": "Habilidades específicas treináveis (hackear, investigar, esconder-se). Complementam os atributos.",
       "exemplo": "Dez perícias fixas; cada uma soma +2 se o personagem for treinado.",
       "pergunta": "O jogo terá perícias? Se sim, como funcionam e se ligam aos atributos?",
-      "comparativo": { "dnd": "proficiência + atributo", "ordem": "treinamento + atributo", "fabula": "sem lista tradicional", "tdet": "perícias, vantagens e desvantagens", "swade": "também por tamanho de dado" }
+      "comparativo": {
+        "dnd": "proficiência + atributo",
+        "ordem": "treinamento + atributo",
+        "fabula": "sem lista tradicional",
+        "tdet": "perícias, vantagens e desvantagens",
+        "swade": "também por tamanho de dado"
+      },
+      "essencial": true
     },
     {
       "bloco": "A · Motor de resolução",
@@ -63,7 +105,14 @@
       "o_que_e": "O número ou critério que a rolagem precisa alcançar. Pode ser fixo, definido pelo mestre ou em oposição a outra rolagem.",
       "exemplo": "O mestre escolhe entre Calmaria (6), Vento Forte (10) e Tempestade (14).",
       "pergunta": "Quem define a dificuldade, como é medida e que nome ela deve ter no nosso jogo?",
-      "comparativo": { "dnd": "CD", "ordem": "DT", "fabula": "nível de dificuldade", "tdet": "meta / oposição", "swade": "alvo 4 / oposição" }
+      "comparativo": {
+        "dnd": "CD",
+        "ordem": "DT",
+        "fabula": "nível de dificuldade",
+        "tdet": "meta / oposição",
+        "swade": "alvo 4 / oposição"
+      },
+      "essencial": false
     },
     {
       "bloco": "B · Combate",
@@ -73,7 +122,14 @@
       "o_que_e": "O que torna um personagem mais difícil de atingir ou ferir (armadura, esquiva, bloqueio).",
       "exemplo": "Defesa = 8 + armadura; gastando um turno, a pessoa pode 'manobrar' para somar +3.",
       "pergunta": "Como o personagem se protege? É um número fixo, uma escolha em cena ou os dois?",
-      "comparativo": { "dnd": "Classe de Armadura", "ordem": "defesa + reações", "fabula": "defesa e defesa mágica", "tdet": "valores simples / resistência", "swade": "Aparar e Robustez" }
+      "comparativo": {
+        "dnd": "Classe de Armadura",
+        "ordem": "defesa + reações",
+        "fabula": "defesa e defesa mágica",
+        "tdet": "valores simples / resistência",
+        "swade": "Aparar e Robustez"
+      },
+      "essencial": false
     },
     {
       "bloco": "B · Combate",
@@ -83,7 +139,14 @@
       "o_que_e": "A estrutura das cenas de luta: quem age quando, quão tático ou rápido é.",
       "exemplo": "Rodadas curtas; cada pessoa faz uma ação principal e uma ação rápida.",
       "pergunta": "Como deve ser o combate: tático, rápido, abstrato? Todos agem em turnos individuais ou em grupo?",
-      "comparativo": { "dnd": "turnos individuais, tático", "ordem": "turnos individuais, tático", "fabula": "turnos alternados, abstrato", "tdet": "rápido, direto, universal", "swade": "rápido, pulp, tático leve" }
+      "comparativo": {
+        "dnd": "turnos individuais, tático",
+        "ordem": "turnos individuais, tático",
+        "fabula": "turnos alternados, abstrato",
+        "tdet": "rápido, direto, universal",
+        "swade": "rápido, pulp, tático leve"
+      },
+      "essencial": false
     },
     {
       "bloco": "B · Combate",
@@ -93,7 +156,14 @@
       "o_que_e": "Como se decide a ordem de ação no início do combate.",
       "exemplo": "Cada pessoa rola Vento; quem tira mais age primeiro. Inimigos agem por último, em bloco.",
       "pergunta": "Como a ordem dos turnos deve ser decidida e que nome ela pode ter no nosso mundo?",
-      "comparativo": { "dnd": "individual", "ordem": "individual", "fabula": "coletiva", "tdet": "simples", "swade": "cartas" }
+      "comparativo": {
+        "dnd": "individual",
+        "ordem": "individual",
+        "fabula": "coletiva",
+        "tdet": "simples",
+        "swade": "cartas"
+      },
+      "essencial": false
     },
     {
       "bloco": "B · Combate",
@@ -103,7 +173,14 @@
       "o_que_e": "Como se calcula o estrago de um ataque ou efeito e o que ele atinge.",
       "exemplo": "Armas têm um dado de dano (d4 a d10) somado ao nível do atirador.",
       "pergunta": "Como o dano deve ser calculado e o que ele atinge (corpo, mente, outro recurso)?",
-      "comparativo": { "dnd": "dados de dano", "ordem": "dados de dano", "fabula": "maior dado + bônus, em muitos ataques", "tdet": "enxuto", "swade": "rolagem separada, com explosão" }
+      "comparativo": {
+        "dnd": "dados de dano",
+        "ordem": "dados de dano",
+        "fabula": "maior dado + bônus, em muitos ataques",
+        "tdet": "enxuto",
+        "swade": "rolagem separada, com explosão"
+      },
+      "essencial": false
     },
     {
       "bloco": "C · Recursos e poderes",
@@ -113,7 +190,14 @@
       "o_que_e": "O que se gasta ou se perde durante o jogo (vida, energia, sanidade, tempo…).",
       "exemplo": "Dois recursos: Casco (vida) e Combustível (energia para manobras).",
       "pergunta": "Quais recursos o jogo terá, o que cada um mede e como se recuperam?",
-      "comparativo": { "dnd": "PV, magias, habilidades", "ordem": "PV, PE, Sanidade", "fabula": "PV, PM, Inventário, Pontos Fabula", "tdet": "PV, PM, Pontos de Ação", "swade": "Bennies, Ferimentos, Fadiga" }
+      "comparativo": {
+        "dnd": "PV, magias, habilidades",
+        "ordem": "PV, PE, Sanidade",
+        "fabula": "PV, PM, Inventário, Pontos Fabula",
+        "tdet": "PV, PM, Pontos de Ação",
+        "swade": "Bennies, Ferimentos, Fadiga"
+      },
+      "essencial": true
     },
     {
       "bloco": "C · Recursos e poderes",
@@ -124,7 +208,14 @@
       "exemplo": "Cada poder tem um nome, um custo e um efeito, como 'Rajada de Vento'.",
       "definicao_atual": "Manifestação, Função, Glitch e comando por assistente virtual.",
       "pergunta": "Concorda com a definição? Que ajuste faria?",
-      "comparativo": { "dnd": "magias e habilidades", "ordem": "rituais e habilidades", "fabula": "habilidades de classe", "tdet": "vantagens, técnicas, poderes especiais", "swade": "poderes flexíveis" }
+      "comparativo": {
+        "dnd": "magias e habilidades",
+        "ordem": "rituais e habilidades",
+        "fabula": "habilidades de classe",
+        "tdet": "vantagens, técnicas, poderes especiais",
+        "swade": "poderes flexíveis"
+      },
+      "essencial": false
     },
     {
       "bloco": "C · Recursos e poderes",
@@ -135,7 +226,14 @@
       "exemplo": "Três classes: Piloto, Mecânica e Navegadora, cada uma com 5 habilidades.",
       "definicao_atual": "Mentalista, Mecânico, Naturalista, Físico e Suporte.",
       "pergunta": "Concorda? Há algo a ajustar (nomes, combinações, multiclasse)?",
-      "comparativo": { "dnd": "classes e subclasses", "ordem": "classes e trilhas", "fabula": "multiclasse modular", "tdet": "arquétipos / conceito", "swade": "sem classes rígidas" }
+      "comparativo": {
+        "dnd": "classes e subclasses",
+        "ordem": "classes e trilhas",
+        "fabula": "multiclasse modular",
+        "tdet": "arquétipos / conceito",
+        "swade": "sem classes rígidas"
+      },
+      "essencial": false
     },
     {
       "bloco": "C · Recursos e poderes",
@@ -145,7 +243,14 @@
       "o_que_e": "Como o personagem evolui ao longo da campanha.",
       "exemplo": "A cada missão cumprida, o grupo escolhe uma melhoria para o dirigível.",
       "pergunta": "Como o personagem deve evoluir: por níveis, por marcos da história, por upgrades?",
-      "comparativo": { "dnd": "níveis 1–20", "ordem": "NEX", "fabula": "níveis e multiclasse", "tdet": "XP e evolução", "swade": "avanços" }
+      "comparativo": {
+        "dnd": "níveis 1–20",
+        "ordem": "NEX",
+        "fabula": "níveis e multiclasse",
+        "tdet": "XP e evolução",
+        "swade": "avanços"
+      },
+      "essencial": false
     },
     {
       "bloco": "D · Risco e tom",
@@ -156,7 +261,14 @@
       "exemplo": "Tirar 1 nos dois dados faz o dirigível perder a vela.",
       "definicao_atual": "Glitch exige confirmação adicional após falha crítica.",
       "pergunta": "Concorda? Que consequências um glitch deveria ter?",
-      "comparativo": { "dnd": "falha automática no ataque", "ordem": "falhas com efeitos conforme regras", "fabula": "dois dados mostrando 1", "tdet": "menos dramáticas", "swade": "1 no dado de traço e no Wild Die" }
+      "comparativo": {
+        "dnd": "falha automática no ataque",
+        "ordem": "falhas com efeitos conforme regras",
+        "fabula": "dois dados mostrando 1",
+        "tdet": "menos dramáticas",
+        "swade": "1 no dado de traço e no Wild Die"
+      },
+      "essencial": false
     },
     {
       "bloco": "D · Risco e tom",
@@ -166,7 +278,14 @@
       "o_que_e": "Os perigos próprios do mundo além do dano comum (sanidade, exposição, perda de memória…).",
       "exemplo": "Ao voar sem rota, o grupo acumula 'Desorientação', que atrapalha as rolagens.",
       "pergunta": "Que riscos extras devem existir no nosso mundo e quais são as consequências?",
-      "comparativo": { "dnd": "morte, condições, exaustão", "ordem": "sanidade, paranormal", "fabula": "condições, rendição e sacrifício", "tdet": "baixa letalidade / ação", "swade": "abalado, ferimentos, fadiga" }
+      "comparativo": {
+        "dnd": "morte, condições, exaustão",
+        "ordem": "sanidade, paranormal",
+        "fabula": "condições, rendição e sacrifício",
+        "tdet": "baixa letalidade / ação",
+        "swade": "abalado, ferimentos, fadiga"
+      },
+      "essencial": false
     },
     {
       "bloco": "D · Risco e tom",
@@ -177,7 +296,14 @@
       "exemplo": "Aventura de exploração com tomada de decisão em equipe e ritmo rápido.",
       "definicao_atual": "Thriller de investigação, infiltração e conflito velado.",
       "pergunta": "Concorda? O que está faltando ou sobrando?",
-      "comparativo": { "dnd": "fantasia heroica e tática", "ordem": "investigação e combate paranormal", "fabula": "JRPG e narrativa compartilhada", "tdet": "ação rápida, anime, flexível", "swade": "ação rápida, pulp, flexível e cinematográfica" }
+      "comparativo": {
+        "dnd": "fantasia heroica e tática",
+        "ordem": "investigação e combate paranormal",
+        "fabula": "JRPG e narrativa compartilhada",
+        "tdet": "ação rápida, anime, flexível",
+        "swade": "ação rápida, pulp, flexível e cinematográfica"
+      },
+      "essencial": false
     }
   ]
 }

@@ -61,7 +61,7 @@ export function isLocked(
   return { locked: false };
 }
 
-export type SessionPayload = { pid: string; fid: string; exp: number };
+export type SessionPayload = { pid: string; fid: string; v?: number; exp: number };
 
 async function hmacKey(secret: string) {
   return crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
