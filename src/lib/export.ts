@@ -18,6 +18,15 @@ export const mdEscape = (v: string) => v.replace(/\r?\n+/g, " ").replace(/([\\`*
 /** Multi-line escape: keeps line breaks, escapes Markdown specials per line. */
 export const mdBlock = (v: string) => v.split(/\r?\n/).map((l) => mdEscape(l)).join("  \n");
 
+/**
+ * Block for use inside a list item: every line after the first is indented by two
+ * spaces, so a multi-paragraph response stays inside the person's item instead of
+ * splitting the list in two.
+ */
+const mdListItemBlock = (v: string) =>
+  mdBlock(v).split("\n").map((l, i) => (i === 0 ? l : l.trim() === "" ? "" : `  ${l}`)).join("\n");
+
+
 export function toCSV(fields: ExpField[], rs: ExpResp[]): string {
   const byId = new Map(fields.map((f) => [f.id, f]));
   const head = ["bloco", "campo", "pessoa", "resposta", "referencia", "pulou", "concordancia"];
@@ -38,7 +47,8 @@ export function toMarkdown(titulo: string, fields: ExpField[], rs: ExpResp[], no
     out.push(`## ${mdEscape(f.nome)}`, "", `**Status:** ${mdEscape(n?.status ?? "EM ABERTO")}`, "", `**Síntese:** ${n?.sintese ? mdBlock(n.sintese) : "—"}`, "");
     if (n?.decisao_final) out.push(`**Decisão final:** ${mdBlock(n.decisao_final)}`, "");
     for (const r of rs.filter((x) => x.field_id === f.id).sort((a, b) => a.nome.localeCompare(b.nome))) {
-      const txt = r.pulou ? "_(pulou)_" : [r.concordancia ? `[${CONCORDANCIA_LABEL[r.concordancia]}]` : "", mdBlock(r.texto)].filter(Boolean).join(" ") || "—";
+      const txt = r.pulou ? "_(pulou)_" : [r.concordancia ? `[${CONCORDANCIA_LABEL[r.concordancia]}]` : "", mdListItemBlock(r.texto)].filter(Boolean).join(" ") || "—";
+
       out.push(`- ${mdEscape(r.nome)}: ${txt}${r.referencia ? ` (ref.: ${mdEscape(r.referencia)})` : ""}`);
     }
     out.push("");
