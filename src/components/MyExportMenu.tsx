@@ -4,18 +4,12 @@ import { toast } from "sonner";
 import { Copy, Download, FileText, Loader2, Printer } from "lucide-react";
 import { exportMine } from "@/lib/oficina.functions";
 import { myToMarkdown, myToText, type MyExport } from "@/lib/my-export";
+import { download } from "@/lib/export";
+import { CONCORDANCIA_LABEL } from "@/lib/systems";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-function deliver(name: string, content: string, type: string) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const a = document.createElement("a");
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 30_000);
-}
 
 async function copyText(text: string) {
   try {
