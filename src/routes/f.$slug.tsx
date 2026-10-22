@@ -9,7 +9,7 @@ import {
   checkName, getGroupResponses, getPublicForm, getRequestOrigin, identify, resume, saveProgress,
   submitResponses, type MyResponse, type MyState, type PublicField,
 } from "@/lib/oficina.functions";
-import { SYSTEMS, fieldIcon, formatPrazo, PARTICIPANT_PRIVACY } from "@/lib/systems";
+import { SYSTEMS, fieldIcon, formatPrazo, PARTICIPANT_PRIVACY, CONCORDANCIA_LABEL } from "@/lib/systems";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -562,7 +562,7 @@ function Final({ fields, resp, me, flushAll, closed, mostrar, onBack, onSubmitte
                       <b>{g.nome}:</b>{" "}
                       {g.pulou ? <i>pulou</i> : (
                         <>
-                          {g.concordancia && <span className="font-medium">{({ concordo: "Concordo", ajustar: "Quero ajustar", sem_opiniao: "Não tenho opinião" } as Record<string, string>)[g.concordancia] ?? g.concordancia}{g.texto ? " — " : ""}</span>}
+                          {g.concordancia && <span className="font-medium">{CONCORDANCIA_LABEL[g.concordancia] ?? g.concordancia}{g.texto ? " — " : ""}</span>}
                           {g.texto || (!g.concordancia && "—")}
                           {g.referencia && <span className="block text-muted-foreground">Ref.: {g.referencia}</span>}
                         </>

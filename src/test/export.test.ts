@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { csvCell, mdEscape, toCSV } from "@/lib/export";
+import { csvCell, mdEscape, toCSV, toMarkdown } from "@/lib/export";
 import { signSession, verifySession } from "@/lib/security";
 
 describe("CSV formula neutralization", () => {
@@ -56,11 +56,25 @@ describe("participant own export", () => {
     const md = myToMarkdown(e, now);
     expect(md).toContain("Rascunho (não enviado)");
     expect(md).toContain("_(pulado)_");
-    expect(md).toContain("**Concordância:** quero ajustar");
+    expect(md).toContain("**Concordância:** Quero ajustar");
     expect(md).toContain("\\*forte\\*");
     expect(myToText(e, now)).toContain("RASCUNHO (NÃO ENVIADO)");
   });
   it("omits draft notice once sent", () => {
     expect(myToMarkdown({ ...e, rascunho: false }, now)).not.toContain("Rascunho");
+  });
+});
+
+describe("toMarkdown line breaks", () => {
+  it("keeps paragraphs in responses, síntese and decisão final", () => {
+    const md = toMarkdown(
+      "T",
+      [{ id: "f1", nome: "Campo", bloco: "1", ordem: 1 }],
+      [{ field_id: "f1", nome: "Ana", texto: "parágrafo um\n\nparágrafo dois", referencia: "", pulou: false, concordancia: null }],
+      [{ field_id: "f1", sintese: "linha A\nlinha B", status: "FECHADO", decisao_final: "decisão X\ndecisão Y" }],
+    );
+    expect(md).toContain("parágrafo um  \n  \nparágrafo dois");
+    expect(md).toContain("linha A  \nlinha B");
+    expect(md).toContain("decisão X  \ndecisão Y");
   });
 });

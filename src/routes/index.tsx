@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, Link } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { getLatestSlug } from "@/lib/oficina.functions";
 
 export const Route = createFileRoute("/")({
@@ -22,7 +22,6 @@ export const Route = createFileRoute("/")({
       <div>
         <h1 className="text-3xl">STORIAverso · Oficinas</h1>
         <p className="mt-3 text-muted-foreground">Nenhuma oficina ativa no momento.</p>
-        <Link to="/tabela" className="mt-4 inline-block text-primary underline">Ver tabela comparativa</Link>
       </div>
     </main>
   ),

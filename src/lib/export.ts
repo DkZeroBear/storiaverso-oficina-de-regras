@@ -1,3 +1,5 @@
+import { CONCORDANCIA_LABEL } from "@/lib/systems";
+
 export type ExpField = { id: string; nome: string; bloco: string; ordem: number };
 export type ExpResp = {
   field_id: string; nome: string; texto: string; referencia: string; pulou: boolean; concordancia: string | null;
@@ -13,6 +15,9 @@ export const csvCell = (v: string) => {
 /** Escapes Markdown special characters so pasted text renders literally. */
 export const mdEscape = (v: string) => v.replace(/\r?\n+/g, " ").replace(/([\\`*_\[\]#|<>~])/g, "\\$1").replace(/^([-+]|\d+\.)(\s)/, "\\$1$2");
 
+/** Multi-line escape: keeps line breaks, escapes Markdown specials per line. */
+export const mdBlock = (v: string) => v.split(/\r?\n/).map((l) => mdEscape(l)).join("  \n");
+
 export function toCSV(fields: ExpField[], rs: ExpResp[]): string {
   const byId = new Map(fields.map((f) => [f.id, f]));
   const head = ["bloco", "campo", "pessoa", "resposta", "referencia", "pulou", "concordancia"];
@@ -26,16 +31,14 @@ export function toCSV(fields: ExpField[], rs: ExpResp[]): string {
   return "\uFEFF" + [head.join(","), ...rows].join("\n");
 }
 
-const CONC: Record<string, string> = { concordo: "Concordo", ajustar: "Quero ajustar", sem_opiniao: "Não tenho opinião" };
-
 export function toMarkdown(titulo: string, fields: ExpField[], rs: ExpResp[], notes: ExpNote[]): string {
   const out = [`# ${mdEscape(titulo)}`, ""];
   for (const f of [...fields].sort((a, b) => a.ordem - b.ordem)) {
     const n = notes.find((x) => x.field_id === f.id);
-    out.push(`## ${mdEscape(f.nome)}`, "", `**Status:** ${mdEscape(n?.status ?? "EM ABERTO")}`, "", `**Síntese:** ${n?.sintese ? mdEscape(n.sintese) : "—"}`, "");
-    if (n?.decisao_final) out.push(`**Decisão final:** ${mdEscape(n.decisao_final)}`, "");
+    out.push(`## ${mdEscape(f.nome)}`, "", `**Status:** ${mdEscape(n?.status ?? "EM ABERTO")}`, "", `**Síntese:** ${n?.sintese ? mdBlock(n.sintese) : "—"}`, "");
+    if (n?.decisao_final) out.push(`**Decisão final:** ${mdBlock(n.decisao_final)}`, "");
     for (const r of rs.filter((x) => x.field_id === f.id).sort((a, b) => a.nome.localeCompare(b.nome))) {
-      const txt = r.pulou ? "_(pulou)_" : [r.concordancia ? `[${CONC[r.concordancia]}]` : "", mdEscape(r.texto)].filter(Boolean).join(" ") || "—";
+      const txt = r.pulou ? "_(pulou)_" : [r.concordancia ? `[${CONCORDANCIA_LABEL[r.concordancia]}]` : "", mdBlock(r.texto)].filter(Boolean).join(" ") || "—";
       out.push(`- ${mdEscape(r.nome)}: ${txt}${r.referencia ? ` (ref.: ${mdEscape(r.referencia)})` : ""}`);
     }
     out.push("");
@@ -46,6 +49,7 @@ export function toMarkdown(titulo: string, fields: ExpField[], rs: ExpResp[], no
 export function download(name: string, content: string, type: string) {
   const url = URL.createObjectURL(new Blob([content], { type }));
   const a = document.createElement("a");
-  a.href = url; a.download = name; a.click();
-  URL.revokeObjectURL(url);
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }

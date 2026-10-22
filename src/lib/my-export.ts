@@ -1,4 +1,5 @@
-import { mdEscape } from "@/lib/export";
+import { mdBlock, mdEscape } from "@/lib/export";
+import { CONCORDANCIA_LABEL } from "@/lib/systems";
 
 export type MyExportField = { id: string; nome: string; bloco: string; ordem: number; status: string };
 export type MyExportResp = {
@@ -12,13 +13,8 @@ export type MyExport = {
   responses: MyExportResp[];
 };
 
-const CONC: Record<string, string> = { concordo: "concordo", ajustar: "quero ajustar", sem_opiniao: "sem opinião" };
-
 export const formatNow = (d: Date) =>
   d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" }) + " (Brasília)";
-
-/** Multi-line escape: keeps line breaks, escapes Markdown specials per line. */
-const mdBlock = (v: string) => v.split(/\r?\n/).map((l) => mdEscape(l)).join("  \n");
 
 function grouped(e: MyExport) {
   const byField = new Map(e.responses.map((r) => [r.field_id, r]));
@@ -39,7 +35,7 @@ export function myToMarkdown(e: MyExport, now: Date): string {
     out.push(`## Bloco ${mdEscape(b.nome)}`, "");
     for (const { f, r } of b.items) {
       out.push(`### ${mdEscape(f.nome)}`, "");
-      if (f.status === "definido") out.push(`**Concordância:** ${r?.concordancia ? CONC[r.concordancia] : "—"}`, "");
+      if (f.status === "definido") out.push(`**Concordância:** ${r?.concordancia ? CONCORDANCIA_LABEL[r.concordancia] : "—"}`, "");
       if (r?.pulou) out.push("_(pulado)_", "");
       else {
         out.push(`**Resposta:** ${r?.texto.trim() ? mdBlock(r.texto) : "—"}`, "");
@@ -58,7 +54,7 @@ export function myToText(e: MyExport, now: Date): string {
     out.push(`--- Bloco ${b.nome} ---`, "");
     for (const { f, r } of b.items) {
       out.push(f.nome);
-      if (f.status === "definido") out.push(`  Concordância: ${r?.concordancia ? CONC[r.concordancia] : "—"}`);
+      if (f.status === "definido") out.push(`  Concordância: ${r?.concordancia ? CONCORDANCIA_LABEL[r.concordancia] : "—"}`);
       if (r?.pulou) out.push("  (pulado)");
       else {
         out.push(`  Resposta: ${r?.texto.trim() ? r.texto.replace(/\r?\n/g, "\n  ") : "—"}`);
