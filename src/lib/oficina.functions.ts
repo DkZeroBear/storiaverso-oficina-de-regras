@@ -71,23 +71,25 @@ export const getLatestSlug = createServerFn({ method: "GET" }).handler(async () 
   return data?.slug ?? null;
 });
 
+async function loadPublicForm(by: { slug: string } | { latest: true }): Promise<PublicForm | null> {
+  const sb = publicClient();
+  let q = sb.from("forms").select("id,slug,titulo,introducao,prazo,mostrar_respostas").eq("ativo", true);
+  q = "slug" in by ? q.eq("slug", by.slug) : q.order("created_at", { ascending: false }).limit(1);
+  const { data: form } = await q.maybeSingle();
+  if (!form) return null;
+  const [{ data: fields }, { data: roster }] = await Promise.all([
+    sb.from("form_fields").select("*").eq("form_id", form.id).order("ordem"),
+    sb.from("form_roster").select("nome").eq("form_id", form.id).order("nome"),
+  ]);
+  return { ...form, fields: fields ?? [], roster: (roster ?? []).map((r) => r.nome) };
+}
+
 export const getPublicForm = createServerFn({ method: "GET" })
   .inputValidator((d: { slug: string }) => z.object({ slug: z.string().min(1).max(80) }).parse(d))
-  .handler(async ({ data }): Promise<PublicForm | null> => {
-    const sb = publicClient();
-    const { data: form } = await sb
-      .from("forms")
-      .select("id,slug,titulo,introducao,prazo,mostrar_respostas")
-      .eq("slug", data.slug)
-      .eq("ativo", true)
-      .maybeSingle();
-    if (!form) return null;
-    const [{ data: fields }, { data: roster }] = await Promise.all([
-      sb.from("form_fields").select("*").eq("form_id", form.id).order("ordem"),
-      sb.from("form_roster").select("nome").eq("form_id", form.id).order("nome"),
-    ]);
-    return { ...form, fields: fields ?? [], roster: (roster ?? []).map((r) => r.nome) };
-  });
+  .handler(async ({ data }) => loadPublicForm({ slug: data.slug }));
+
+/** Most recent active form, in one call (used by /tabela). */
+export const getLatestPublicForm = createServerFn({ method: "GET" }).handler(async () => loadPublicForm({ latest: true }));
 
 /* ---------- Participant identity ---------- */
 
@@ -155,22 +157,18 @@ export const identify = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }): Promise<{ ok: true; state: MyState } | { ok: false; error: string; needCode?: boolean }> => {
     const sb = await admin();
-    const { data: form } = await sb.from("forms").select("id,ativo").eq("id", data.formId).maybeSingle();
+    const [{ data: form }, { data: inRoster }, { data: p }] = await Promise.all([
+      sb.from("forms").select("id,ativo").eq("id", data.formId).maybeSingle(),
+      sb.from("form_roster").select("id").eq("form_id", data.formId).eq("nome", data.nome).maybeSingle(),
+      sb
+        .from("participants")
+        .select("id,pin_hash,pin_salt,sessao_versao,reset_code_hash,reset_code_salt,reset_code_expira")
+        .eq("form_id", data.formId)
+        .eq("nome", data.nome)
+        .maybeSingle(),
+    ]);
     if (!form?.ativo) return { ok: false, error: "Formulário indisponível." };
-    const { data: inRoster } = await sb
-      .from("form_roster")
-      .select("id")
-      .eq("form_id", data.formId)
-      .eq("nome", data.nome)
-      .maybeSingle();
     if (!inRoster) return { ok: false, error: "Nome não está na lista." };
-
-    const { data: p } = await sb
-      .from("participants")
-      .select("id,pin_hash,pin_salt,sessao_versao,reset_code_hash,reset_code_salt,reset_code_expira")
-      .eq("form_id", data.formId)
-      .eq("nome", data.nome)
-      .maybeSingle();
 
     const now = new Date().toISOString();
     if (!p) {
