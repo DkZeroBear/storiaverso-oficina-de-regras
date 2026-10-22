@@ -14,16 +14,304 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      facilitator_notes: {
+        Row: {
+          decisao_final: string
+          field_id: string
+          sintese: string
+          status: string
+        }
+        Insert: {
+          decisao_final?: string
+          field_id: string
+          sintese?: string
+          status?: string
+        }
+        Update: {
+          decisao_final?: string
+          field_id?: string
+          sintese?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facilitator_notes_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: true
+            referencedRelation: "form_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_fields: {
+        Row: {
+          bloco: string
+          chave: string
+          comparativo: Json
+          definicao_atual: string | null
+          exemplo: string
+          form_id: string
+          id: string
+          nome: string
+          o_que_e: string
+          ordem: number
+          pergunta: string
+          status: string
+        }
+        Insert: {
+          bloco: string
+          chave: string
+          comparativo?: Json
+          definicao_atual?: string | null
+          exemplo?: string
+          form_id: string
+          id?: string
+          nome: string
+          o_que_e?: string
+          ordem: number
+          pergunta?: string
+          status: string
+        }
+        Update: {
+          bloco?: string
+          chave?: string
+          comparativo?: Json
+          definicao_atual?: string | null
+          exemplo?: string
+          form_id?: string
+          id?: string
+          nome?: string
+          o_que_e?: string
+          ordem?: number
+          pergunta?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_fields_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_roster: {
+        Row: {
+          form_id: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          form_id: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          form_id?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_roster_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forms: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          introducao: string
+          mostrar_respostas: boolean
+          prazo: string | null
+          slug: string
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          introducao?: string
+          mostrar_respostas?: boolean
+          prazo?: string | null
+          slug: string
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          introducao?: string
+          mostrar_respostas?: boolean
+          prazo?: string | null
+          slug?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
+      participants: {
+        Row: {
+          atualizado_em: string
+          enviado_em: string | null
+          form_id: string
+          id: string
+          nome: string
+          pin_hash: string
+          pin_salt: string
+          status: string
+          ultimo_campo: number
+        }
+        Insert: {
+          atualizado_em?: string
+          enviado_em?: string | null
+          form_id: string
+          id?: string
+          nome: string
+          pin_hash: string
+          pin_salt: string
+          status?: string
+          ultimo_campo?: number
+        }
+        Update: {
+          atualizado_em?: string
+          enviado_em?: string | null
+          form_id?: string
+          id?: string
+          nome?: string
+          pin_hash?: string
+          pin_salt?: string
+          status?: string
+          ultimo_campo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participants_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pin_attempts: {
+        Row: {
+          form_id: string
+          id: string
+          nome: string
+          sucesso: boolean
+          tentado_em: string
+        }
+        Insert: {
+          form_id: string
+          id?: string
+          nome: string
+          sucesso: boolean
+          tentado_em?: string
+        }
+        Update: {
+          form_id?: string
+          id?: string
+          nome?: string
+          sucesso?: boolean
+          tentado_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pin_attempts_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      responses: {
+        Row: {
+          atualizado_em: string
+          concordancia: string | null
+          field_id: string
+          id: string
+          participant_id: string
+          pulou: boolean
+          referencia: string
+          texto: string
+        }
+        Insert: {
+          atualizado_em?: string
+          concordancia?: string | null
+          field_id: string
+          id?: string
+          participant_id: string
+          pulou?: boolean
+          referencia?: string
+          texto?: string
+        }
+        Update: {
+          atualizado_em?: string
+          concordancia?: string | null
+          field_id?: string
+          id?: string
+          participant_id?: string
+          pulou?: boolean
+          referencia?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responses_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "form_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "responses_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +438,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin"],
+    },
   },
 } as const
