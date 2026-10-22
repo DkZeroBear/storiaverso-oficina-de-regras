@@ -211,6 +211,8 @@ function Welcome({ form, closed, onStart }: { form: { introducao: string; prazo:
 function Identify({ formId, roster, onDone }: { formId: string; roster: string[]; onDone: (s: MyState) => void }) {
   const [nome, setNome] = useState("");
   const [exists, setExists] = useState<boolean | null>(null);
+  const [reset, setReset] = useState(false);
+  const [codigo, setCodigo] = useState("");
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");
   const [busy, setBusy] = useState(false);
@@ -219,8 +221,9 @@ function Identify({ formId, roster, onDone }: { formId: string; roster: string[]
   const ident = useServerFn(identify);
 
   const pick = async (n: string) => {
-    setNome(n); setErr(""); setPin(""); setPin2(""); setExists(null);
+    setNome(n); setErr(""); setPin(""); setPin2(""); setCodigo(""); setExists(null);
     const r = await check({ data: { formId, nome: n } });
+    setReset(r.reset);
     setExists(r.exists);
   };
   const submit = async (e: React.FormEvent) => {
@@ -228,9 +231,10 @@ function Identify({ formId, roster, onDone }: { formId: string; roster: string[]
     setErr("");
     if (!/^\d{4}$/.test(pin)) return setErr("O PIN deve ter 4 dígitos.");
     if (!exists && pin !== pin2) return setErr("Os PINs não coincidem.");
+    if (reset && codigo.trim().length !== 6) return setErr("Digite o código de 6 caracteres que o facilitador te enviou.");
     setBusy(true);
     try {
-      const r = await ident({ data: { formId, nome, pin } });
+      const r = await ident({ data: { formId, nome, pin, ...(reset ? { codigo: codigo.trim() } : {}) } });
       if (r.ok) onDone(r.state);
       else setErr(r.error);
     } catch {
@@ -244,6 +248,7 @@ function Identify({ formId, roster, onDone }: { formId: string; roster: string[]
     <section className="fade-up space-y-6">
       <div>
         <h2 className="text-2xl">Quem é você?</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Escolha o seu próprio nome e crie o PIN agora. Se o seu nome já estiver em uso sem ter sido você, avise o facilitador.</p>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {roster.map((n) => (
             <Button key={n} variant={nome === n ? "default" : "outline"} onClick={() => pick(n)} aria-pressed={nome === n}>
@@ -256,10 +261,17 @@ function Identify({ formId, roster, onDone }: { formId: string; roster: string[]
         <form onSubmit={submit} className="fade-up space-y-4 rounded-xl border bg-card p-5">
           <p className="flex items-center gap-2 text-sm">
             <Lock className="h-4 w-4 text-primary" />
-            {exists ? "Digite seu PIN para continuar de onde parou." : "Crie um PIN de 4 dígitos para voltar depois. Se o facilitador redefiniu seu PIN, suas respostas continuam guardadas."}
+            {exists ? "Digite seu PIN para continuar de onde parou." : reset ? "Seu PIN foi redefinido. Digite o código que o facilitador te enviou e crie um PIN novo. Suas respostas continuam guardadas." : "Crie um PIN de 4 dígitos para voltar depois."}
           </p>
+          {reset && (
+            <div className="space-y-1">
+              <Label htmlFor="codigo">Código do facilitador</Label>
+              <Input id="codigo" autoComplete="off" autoCapitalize="characters" maxLength={6} value={codigo}
+                onChange={(e) => setCodigo(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} className="max-w-[12rem] text-center text-xl tracking-[0.3em]" />
+            </div>
+          )}
           <div className="space-y-1">
-            <Label htmlFor="pin">PIN</Label>
+            <Label htmlFor="pin">{reset ? "Novo PIN" : "PIN"}</Label>
             <Input id="pin" inputMode="numeric" autoComplete="off" maxLength={4} value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} className="max-w-[10rem] text-center text-xl tracking-[0.5em]" />
           </div>
@@ -464,9 +476,9 @@ function Final({ fields, resp, me, closed, mostrar, onBack, onSubmitted, onPrint
   const [groupData, setGroupData] = useState<Awaited<ReturnType<typeof getGroupResponses>>>(null);
 
   useEffect(() => {
-    if (mostrar) group({ data: { token: me.token } }).then(setGroupData).catch(() => {});
+    if (mostrar && done) group({ data: { token: me.token } }).then(setGroupData).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mostrar]);
+  }, [mostrar, done]);
 
   const send = async () => {
     setBusy(true);
@@ -509,7 +521,10 @@ function Final({ fields, resp, me, closed, mostrar, onBack, onSubmitted, onPrint
           {busy && <Loader2 className="h-4 w-4 animate-spin" />} {done ? "Enviar de novo" : "Enviar respostas"}
         </Button>
       </div>
-      {mostrar && groupData && (
+      {mostrar && !done && (
+        <p className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">Envie suas respostas para ver as do grupo.</p>
+      )}
+      {mostrar && done && groupData && (
         <div className="space-y-4">
           <h2 className="text-2xl">Respostas do grupo</h2>
           {fields.map((f) => {

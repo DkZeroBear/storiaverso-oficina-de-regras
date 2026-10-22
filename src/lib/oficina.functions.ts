@@ -7,7 +7,6 @@ import {
   PIN_REGEX,
   SESSION_TTL_MS,
   hashPin,
-  isLocked,
   newSalt,
   safeEqual,
   signSession,
