@@ -6,7 +6,7 @@ import {
   ArrowLeft, ArrowRight, Check, ChevronDown, Clock, Lock, Save, ShieldCheck, Loader2,
 } from "lucide-react";
 import {
-  checkName, getGroupResponses, getPublicForm, identify, resume, saveProgress, saveResponse,
+  checkName, getGroupResponses, getPublicForm, getRequestOrigin, identify, resume, saveProgress, saveResponse,
   submitResponses, type MyResponse, type MyState, type PublicField,
 } from "@/lib/oficina.functions";
 import { SYSTEMS, fieldIcon, formatPrazo, PARTICIPANT_PRIVACY } from "@/lib/systems";
@@ -15,16 +15,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import ogAsset from "@/assets/storiaverso-og.jpg.asset.json";
 
 export const Route = createFileRoute("/f/$slug")({
   loader: async ({ params }) => {
-    const form = await getPublicForm({ data: { slug: params.slug } });
+    const [form, origin] = await Promise.all([getPublicForm({ data: { slug: params.slug } }), getRequestOrigin()]);
     if (!form) throw notFound();
-    return form;
+    return { ...form, origin };
   },
   head: ({ loaderData }) => {
-    const t = loaderData ? `${loaderData.titulo} · STORIAverso` : "Oficina · STORIAverso";
-    const d = "Preencha a coluna do STORIAverso com suas ideias. Não existe resposta certa.";
+    const t = loaderData ? `STORIAverso · ${loaderData.titulo}` : "STORIAverso · Oficinas";
+    const d = "Formulário de regras do jogo. Leva de 15 a 25 minutos. Só o facilitador vê as respostas.";
+    const img = loaderData ? `${loaderData.origin}${ogAsset.url}` : null;
     return {
       meta: [
         { title: t },
@@ -33,6 +35,14 @@ export const Route = createFileRoute("/f/$slug")({
         { property: "og:description", content: d },
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
+        ...(img
+          ? [
+              { property: "og:image", content: img },
+              { property: "og:image:width", content: "1200" },
+              { property: "og:image:height", content: "630" },
+              { name: "twitter:image", content: img },
+            ]
+          : []),
       ],
     };
   },
@@ -102,7 +112,10 @@ function FormPage() {
       {stage === "identify" && <Identify formId={form.id} roster={form.roster} onDone={enter} />}
       {stage === "form" && me && (
         <>
-          <ProgressBar filled={filled} total={form.fields.length} nome={me.nome} />
+          <ProgressBar filled={filled} total={form.fields.length} nome={me.nome}
+            blocks={blocks.map((b) => ({ nome: b.nome, done: b.fields.every((f) => isFilled(resp[f.id])) }))}
+            current={step}
+            onJump={(i) => { setFocusIdx(null); setStep(i); window.scrollTo(0, 0); }} />
           <Block
             key={step}
             block={blocks[step] ?? { nome: "", fields: [] }}
@@ -161,6 +174,7 @@ function Welcome({ form, closed, onStart }: { form: { introducao: string; prazo:
         <li>• Você vai preencher a coluna “STORIAverso” com ideias próprias, campo por campo.</li>
         <li>• Leva cerca de 15 a 25 minutos. Você pode salvar e voltar depois.</li>
         <li>• Não é preciso preencher tudo: existe a opção “Não sei / pular”.</li>
+        <li>• Se faltar tempo, comece pelos campos marcados como <b>Essencial para a ficha</b>.</li>
       </ul>
       <p className="flex items-start gap-2 text-sm text-muted-foreground">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-defined" /> {PARTICIPANT_PRIVACY}
@@ -246,7 +260,10 @@ function Identify({ formId, roster, onDone }: { formId: string; roster: string[]
   );
 }
 
-function ProgressBar({ filled, total, nome }: { filled: number; total: number; nome: string }) {
+function ProgressBar({ filled, total, nome, blocks, current, onJump }: {
+  filled: number; total: number; nome: string;
+  blocks: { nome: string; done: boolean }[]; current: number; onJump: (i: number) => void;
+}) {
   return (
     <div className="sticky top-0 z-10 -mx-4 mb-6 border-b bg-background/90 px-4 py-3 backdrop-blur">
       <div className="flex justify-between text-sm">
@@ -256,6 +273,14 @@ function ProgressBar({ filled, total, nome }: { filled: number; total: number; n
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={filled} aria-valuemax={total}>
         <div className="h-full bg-primary transition-all" style={{ width: `${(filled / total) * 100}%` }} />
       </div>
+      <nav aria-label="Ir para o bloco" className="mt-2 flex flex-wrap gap-1.5">
+        {blocks.map((b, i) => (
+          <button key={b.nome} type="button" onClick={() => onJump(i)} aria-current={i === current ? "step" : undefined}
+            className={`rounded-full border px-2.5 py-0.5 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${i === current ? "border-primary bg-primary text-primary-foreground" : b.done ? "border-defined text-defined" : "text-muted-foreground hover:text-foreground"}`}>
+            {i + 1}. {b.nome}{b.done && i !== current ? " ✓" : ""}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
@@ -326,6 +351,9 @@ function FieldCard({ field, resp, setResp, token, readOnly }: {
       <div className="flex flex-wrap items-center gap-2">
         <Icon className="h-5 w-5 text-primary" aria-hidden />
         <h3 className="text-xl">{field.nome}</h3>
+        {field.essencial && (
+          <span className="rounded-full border border-primary px-2.5 py-0.5 text-xs font-medium text-primary">Essencial para a ficha</span>
+        )}
         <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-medium ${defined ? "bg-defined text-defined-foreground" : "bg-storia text-storia-foreground"}`}>
           {defined ? "Já definido no documento" : "Para propor"}
         </span>

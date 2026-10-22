@@ -11,7 +11,7 @@ export const csvCell = (v: string) => {
 };
 
 /** Escapes Markdown special characters so pasted text renders literally. */
-export const mdEscape = (v: string) => v.replace(/\r?\n+/g, " ").replace(/([\\`*_{}\[\]()#+\-.!|<>~])/g, "\\$1");
+export const mdEscape = (v: string) => v.replace(/\r?\n+/g, " ").replace(/([\\`*_\[\]#|<>~])/g, "\\$1").replace(/^([-+]|\d+\.)(\s)/, "\\$1$2");
 
 export function toCSV(fields: ExpField[], rs: ExpResp[]): string {
   const byId = new Map(fields.map((f) => [f.id, f]));

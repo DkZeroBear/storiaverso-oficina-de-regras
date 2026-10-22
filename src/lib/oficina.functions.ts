@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
@@ -52,6 +53,13 @@ export type PublicForm = {
 };
 
 /* ---------- Public reads ---------- */
+
+export const getRequestOrigin = createServerFn({ method: "GET" }).handler(() => {
+  const req = getRequest();
+  const url = new URL(req.url);
+  const sandboxHost = url.hostname === "localhost" ? req.headers.get("x-forwarded-host") : null;
+  return sandboxHost ? `https://${sandboxHost}` : url.origin;
+});
 
 export const getLatestSlug = createServerFn({ method: "GET" }).handler(async () => {
   const { data } = await publicClient()
