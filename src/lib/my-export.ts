@@ -13,8 +13,6 @@ export type MyExport = {
   responses: MyExportResp[];
 };
 
-const CONC: Record<string, string> = { concordo: "concordo", ajustar: "quero ajustar", sem_opiniao: "sem opinião" };
-
 export const formatNow = (d: Date) =>
   d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" }) + " (Brasília)";
 
