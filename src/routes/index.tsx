@@ -1,24 +1,29 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect, Link } from "@tanstack/react-router";
+import { getLatestSlug } from "@/lib/oficina.functions";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "STORIAverso · Oficinas" },
+      { name: "description", content: "Acesse a oficina ativa do STORIAverso e contribua com ideias para as regras do jogo." },
+      { property: "og:title", content: "STORIAverso · Oficinas" },
+      { property: "og:description", content: "Acesse a oficina ativa do STORIAverso." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  loader: async () => {
+    const slug = await getLatestSlug();
+    if (slug) throw redirect({ to: "/f/$slug", params: { slug } });
+    return null;
+  },
+  component: () => (
+    <main className="flex min-h-screen items-center justify-center p-6 text-center">
+      <div>
+        <h1 className="text-3xl">STORIAverso · Oficinas</h1>
+        <p className="mt-3 text-muted-foreground">Nenhuma oficina ativa no momento.</p>
+        <Link to="/tabela" className="mt-4 inline-block text-primary underline">Ver tabela comparativa</Link>
+      </div>
+    </main>
+  ),
 });
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}

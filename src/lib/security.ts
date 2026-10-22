@@ -7,7 +7,7 @@ function toB64url(bytes: Uint8Array): string {
   for (const b of bytes) s += String.fromCharCode(b);
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
-function fromB64url(s: string): Uint8Array {
+function fromB64url(s: string): Uint8Array<ArrayBuffer> {
   const b = atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4));
   return Uint8Array.from(b, (c) => c.charCodeAt(0));
 }
@@ -56,7 +56,7 @@ export function isLocked(
     failures.push(a.t);
   }
   if (failures.length >= MAX_FAILED_ATTEMPTS) {
-    return { locked: true, until: failures[MAX_FAILED_ATTEMPTS - 1] + LOCK_WINDOW_MS };
+    return { locked: true, until: (failures[MAX_FAILED_ATTEMPTS - 1] ?? now) + LOCK_WINDOW_MS };
   }
   return { locked: false };
 }
@@ -87,7 +87,7 @@ export async function verifySession(
     const ok = await crypto.subtle.verify(
       "HMAC",
       await hmacKey(secret),
-      fromB64url(sig),
+      fromB64url(sig) as Uint8Array<ArrayBuffer>,
       enc.encode(body),
     );
     if (!ok) return null;
