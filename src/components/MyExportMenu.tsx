@@ -66,10 +66,10 @@ export function MyExportMenu({ token, onPrint }: { token: string; onPrint: (e: M
         }}>
           <Copy className="h-4 w-4" /> Copiar como texto (Markdown)
         </DropdownMenuItem>
-        <DropdownMenuItem disabled={disabled} onSelect={() => data && deliver(`${base}.md`, myToMarkdown(data, new Date()), "text/markdown;charset=utf-8")}>
+        <DropdownMenuItem disabled={disabled} onSelect={() => data && download(`${base}.md`, myToMarkdown(data, new Date()), "text/markdown;charset=utf-8")}>
           <Download className="h-4 w-4" /> Baixar arquivo .md
         </DropdownMenuItem>
-        <DropdownMenuItem disabled={disabled} onSelect={() => data && deliver(`${base}.txt`, myToText(data, new Date()), "text/plain;charset=utf-8")}>
+        <DropdownMenuItem disabled={disabled} onSelect={() => data && download(`${base}.txt`, myToText(data, new Date()), "text/plain;charset=utf-8")}>
           <FileText className="h-4 w-4" /> Baixar arquivo .txt
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -81,7 +81,7 @@ export function MyExportMenu({ token, onPrint }: { token: string; onPrint: (e: M
   );
 }
 
-const CONC: Record<string, string> = { concordo: "concordo", ajustar: "quero ajustar", sem_opiniao: "sem opinião" };
+
 
 /** Print-only view: rendered off-screen, shown alone when printing. */
 export function MyPrintView({ data, now }: { data: MyExport; now: string }) {
@@ -102,7 +102,7 @@ export function MyPrintView({ data, now }: { data: MyExport; now: string }) {
             return (
               <div key={f.id} className="print-field">
                 <h3>{f.nome}</h3>
-                {f.status === "definido" && <p><b>Concordância:</b> {r?.concordancia ? CONC[r.concordancia] : "—"}</p>}
+                {f.status === "definido" && <p><b>Concordância:</b> {r?.concordancia ? CONCORDANCIA_LABEL[r.concordancia] : "—"}</p>}
                 {r?.pulou ? <p><i>(pulado)</i></p> : (
                   <>
                     <p style={{ whiteSpace: "pre-wrap" }}><b>Resposta:</b> {r?.texto.trim() ? r.texto : "—"}</p>
