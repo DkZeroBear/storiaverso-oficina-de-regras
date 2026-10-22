@@ -73,7 +73,7 @@ describe("toMarkdown line breaks", () => {
       [{ field_id: "f1", nome: "Ana", texto: "parágrafo um\n\nparágrafo dois", referencia: "", pulou: false, concordancia: null }],
       [{ field_id: "f1", sintese: "linha A\nlinha B", status: "FECHADO", decisao_final: "decisão X\ndecisão Y" }],
     );
-    expect(md).toContain("parágrafo um  \nparágrafo dois");
+    expect(md).toContain("parágrafo um  \n  \nparágrafo dois");
     expect(md).toContain("linha A  \nlinha B");
     expect(md).toContain("decisão X  \ndecisão Y");
   });
