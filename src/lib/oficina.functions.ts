@@ -337,11 +337,14 @@ export const getGroupResponses = createServerFn({ method: "POST" })
     const s = await auth(data.token);
     const sb = await admin();
     const [{ data: form }, { data: me }] = await Promise.all([
-      sb.from("forms").select("mostrar_respostas").eq("id", s.fid).single(),
+      sb.from("forms").select("mostrar_respostas,prazo").eq("id", s.fid).single(),
       sb.from("participants").select("status").eq("id", s.pid).single(),
     ]);
     if (!form?.mostrar_respostas || me?.status !== "enviado") return null;
-    const { data: ps } = await sb.from("participants").select("id,nome").eq("form_id", s.fid);
+    // "Em branco primeiro": nothing is shown before the deadline has passed.
+    if (!form.prazo || Date.parse(form.prazo) >= Date.now()) return null;
+    const { data: ps } = await sb
+      .from("participants").select("id,nome").eq("form_id", s.fid).eq("status", "enviado");
     const ids = (ps ?? []).map((p) => p.id);
     if (!ids.length) return [];
     const { data: rs } = await sb

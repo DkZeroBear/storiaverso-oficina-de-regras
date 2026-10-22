@@ -207,9 +207,24 @@ describe("getGroupResponses", () => {
   });
   it("returns the group after submitting when the option is on", async () => {
     db.forms![0]!.mostrar_respostas = true;
+    db.forms![0]!.prazo = new Date(Date.now() - 60_000).toISOString();
     db.participants![0]!.status = "enviado";
+    db.participants![1]!.status = "enviado";
     const r = await fns.getGroupResponses({ data: { token: await tok("pA") } });
     expect(r!.map((x) => x.nome).sort()).toEqual(["Diogo", "Lorena"]);
+  });
+  it("hides drafts of participants who have not submitted", async () => {
+    db.forms![0]!.mostrar_respostas = true;
+    db.forms![0]!.prazo = new Date(Date.now() - 60_000).toISOString();
+    db.participants![0]!.status = "enviado";
+    const r = await fns.getGroupResponses({ data: { token: await tok("pA") } });
+    expect(r!.map((x) => x.nome)).toEqual(["Diogo"]);
+  });
+  it("returns nothing while the deadline is still open", async () => {
+    db.forms![0]!.mostrar_respostas = true;
+    db.participants![0]!.status = "enviado";
+    db.participants![1]!.status = "enviado";
+    await expect(fns.getGroupResponses({ data: { token: await tok("pA") } })).resolves.toBeNull();
   });
   it("returns nothing after submitting when the option is off", async () => {
     db.participants![0]!.status = "enviado";
