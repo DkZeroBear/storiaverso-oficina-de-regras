@@ -245,7 +245,7 @@ function ByField({ fields, parts, resps, notes, onNoteSaved }: { fields: Field[]
 }
 
 const STATUSES = ["EM ABERTO", "CANDIDATO", "DECISÃO PROVISÓRIA"] as const;
-function NoteEditor({ fieldId, note, onSaved }: { fieldId: string; note?: Note; onSaved: () => void }) {
+function NoteEditor({ fieldId, note, onSaved }: { fieldId: string; note: Note | undefined; onSaved: () => void }) {
   const [sintese, setSintese] = useState(note?.sintese ?? "");
   const [status, setStatus] = useState(note?.status ?? "EM ABERTO");
   const [decisao, setDecisao] = useState(note?.decisao_final ?? "");

@@ -105,7 +105,7 @@ function FormPage() {
           <ProgressBar filled={filled} total={form.fields.length} nome={me.nome} />
           <Block
             key={step}
-            block={blocks[step]}
+            block={blocks[step] ?? { nome: "", fields: [] }}
             stepLabel={`Etapa ${step + 1} de ${blocks.length}`}
             resp={resp}
             setResp={setResp}
