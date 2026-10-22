@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TabelaRouteImport } from './routes/tabela'
+import { Route as FSlugRouteImport } from './routes/f.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const TabelaRoute = TabelaRouteImport.update({
   path: '/tabela',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FSlugRoute = FSlugRouteImport.update({
+  id: '/f/$slug',
+  path: '/f/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/tabela': typeof TabelaRoute
+  '/f/$slug': typeof FSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/tabela': typeof TabelaRoute
+  '/f/$slug': typeof FSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/tabela': typeof TabelaRoute
+  '/f/$slug': typeof FSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/tabela'
+  fullPaths: '/' | '/tabela' | '/f/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/tabela'
-  id: '__root__' | '/' | '/tabela'
+  to: '/' | '/tabela' | '/f/$slug'
+  id: '__root__' | '/' | '/tabela' | '/f/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   TabelaRoute: typeof TabelaRoute
+  FSlugRoute: typeof FSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TabelaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/f/$slug': {
+      id: '/f/$slug'
+      path: '/f/$slug'
+      fullPath: '/f/$slug'
+      preLoaderRoute: typeof FSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   TabelaRoute: TabelaRoute,
+  FSlugRoute: FSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
