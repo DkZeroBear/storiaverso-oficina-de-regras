@@ -13,6 +13,7 @@ export const formJsonSchema = z.object({
         chave: z.string().trim().min(1).max(80),
         nome: z.string().trim().min(1).max(120),
         status: z.enum(["propor", "definido"]),
+        essencial: z.boolean().default(false),
         o_que_e: z.string().max(2000).default(""),
         exemplo: z.string().max(2000).default(""),
         pergunta: z.string().max(2000).default(""),

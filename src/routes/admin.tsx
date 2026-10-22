@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Download, LogOut, Search, ShieldCheck, Loader2, Copy, Archive, Plus, Trash2 } from "lucide-react";
+import { Download, LogOut, Search, ShieldCheck, Loader2, Copy, Archive, Plus, Trash2, KeyRound, Pencil } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
@@ -17,7 +21,7 @@ import sample from "@/data/oficina-de-regras.json";
 type T = Database["public"]["Tables"];
 type Form = T["forms"]["Row"];
 type Field = T["form_fields"]["Row"];
-type Participant = Omit<T["participants"]["Row"], "pin_hash" | "pin_salt">;
+type Participant = Omit<T["participants"]["Row"], "pin_hash" | "pin_salt" | "sessao_versao">;
 type Resp = T["responses"]["Row"];
 type Note = T["facilitator_notes"]["Row"];
 
@@ -162,7 +166,7 @@ function FormAdmin({ form, onChanged }: { form: Form; onChanged: () => void }) {
       <TabsContent value="geral">
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
-            <thead><tr className="border-b text-left"><th className="p-3">Pessoa</th><th className="p-3">Progresso</th><th className="p-3">Pulados</th><th className="p-3">Última edição</th><th className="p-3">Status</th></tr></thead>
+            <thead><tr className="border-b text-left"><th className="p-3">Pessoa</th><th className="p-3">Progresso</th><th className="p-3">Pulados</th><th className="p-3">Última edição</th><th className="p-3">Status</th><th className="p-3">Ações</th></tr></thead>
             <tbody>
               {parts.map((p) => {
                 const mine = resps.filter((r) => r.participant_id === p.id);
@@ -173,10 +177,11 @@ function FormAdmin({ form, onChanged }: { form: Form; onChanged: () => void }) {
                     <td className="p-3">{mine.filter((r) => r.pulou).length}</td>
                     <td className="p-3">{new Date(p.atualizado_em).toLocaleString("pt-BR")}</td>
                     <td className="p-3">{p.status === "enviado" ? <span className="text-defined">enviado</span> : "rascunho"}</td>
+                    <td className="p-3"><ParticipantActions p={p} onDone={load} /></td>
                   </tr>
                 );
               })}
-              {!parts.length && <tr><td className="p-3 text-muted-foreground" colSpan={5}>Ninguém entrou ainda.</td></tr>}
+              {!parts.length && <tr><td className="p-3 text-muted-foreground" colSpan={6}>Ninguém entrou ainda.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -220,7 +225,11 @@ function ByField({ fields, parts, resps, notes, onNoteSaved }: { fields: Field[]
         return (
           <section key={f.id} className="rounded-xl border bg-card p-4">
             <p className="terminal-label">{f.bloco}</p>
-            <h2 className="text-xl">{f.nome}</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl">{f.nome}</h2>
+              {f.essencial && <span className="rounded-full border border-primary px-2 py-0.5 text-xs text-primary">Essencial para a ficha</span>}
+            </div>
+            <FieldEditor field={f} answered={resps.some((r) => r.field_id === f.id)} onSaved={onNoteSaved} />
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {rs.map((r) => (
                 <div key={r.id} className="rounded-lg border bg-muted p-3 text-sm">
@@ -240,6 +249,80 @@ function ByField({ fields, parts, resps, notes, onNoteSaved }: { fields: Field[]
           </section>
         );
       })}
+    </div>
+  );
+}
+
+function ParticipantActions({ p, onDone }: { p: Participant; onDone: () => void }) {
+  const [typed, setTyped] = useState("");
+  const reset = async () => {
+    const { error } = await supabase.rpc("admin_reset_pin", { _participant_id: p.id });
+    if (error) toast.error("Falha ao redefinir PIN."); else { toast.success(`PIN de ${p.nome} redefinido. As respostas foram mantidas.`); onDone(); }
+  };
+  const remove = async () => {
+    const { error } = await supabase.rpc("admin_delete_participant", { _participant_id: p.id });
+    if (error) toast.error("Falha ao excluir."); else { toast.success(`${p.nome} e as respostas foram excluídos.`); onDone(); }
+  };
+  return (
+    <div className="flex flex-wrap gap-1">
+      <AlertDialog>
+        <AlertDialogTrigger asChild><Button size="sm" variant="outline"><KeyRound className="h-4 w-4" /> Redefinir PIN</Button></AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Redefinir o PIN de {p.nome}?</AlertDialogTitle>
+            <AlertDialogDescription>O PIN atual deixa de valer e quem estiver conectado com esse nome sai. As respostas ficam guardadas. Na próxima entrada, a pessoa cria um PIN novo.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={reset}>Redefinir PIN</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog onOpenChange={() => setTyped("")}>
+        <AlertDialogTrigger asChild><Button size="sm" variant="outline" className="text-destructive"><Trash2 className="h-4 w-4" /> Excluir participante e respostas</Button></AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {p.nome} e todas as respostas?</AlertDialogTitle>
+            <AlertDialogDescription>Isso não pode ser desfeito. O nome continua na lista de participantes. Para confirmar, digite o nome: <b>{p.nome}</b></AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input aria-label="Digite o nome para confirmar" value={typed} onChange={(e) => setTyped(e.target.value)} />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction disabled={typed.trim() !== p.nome} onClick={remove} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function FieldEditor({ field, answered, onSaved }: { field: Field; answered: boolean; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [v, setV] = useState({ nome: field.nome, o_que_e: field.o_que_e, exemplo: field.exemplo, pergunta: field.pergunta, definicao_atual: field.definicao_atual ?? "" });
+  const [busy, setBusy] = useState(false);
+  if (!open) return <Button size="sm" variant="ghost" className="mt-1" onClick={() => setOpen(true)}><Pencil className="h-4 w-4" /> Editar textos</Button>;
+  const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setV({ ...v, [k]: e.target.value });
+  return (
+    <div className="mt-3 space-y-2 rounded-lg border p-3">
+      {answered && <p role="note" className="rounded-md bg-muted p-2 text-sm">Este campo já tem respostas. Só a “definição atual” pode ser editada, para não mudar o sentido do que as pessoas responderam.</p>}
+      <div className="space-y-1"><Label htmlFor={`fn-${field.id}`}>Nome</Label><Input id={`fn-${field.id}`} maxLength={120} disabled={answered} value={v.nome} onChange={set("nome")} /></div>
+      <div className="space-y-1"><Label htmlFor={`fo-${field.id}`}>O que é</Label><Textarea id={`fo-${field.id}`} rows={2} maxLength={2000} disabled={answered} value={v.o_que_e} onChange={set("o_que_e")} /></div>
+      <div className="space-y-1"><Label htmlFor={`fe-${field.id}`}>Exemplo</Label><Textarea id={`fe-${field.id}`} rows={2} maxLength={2000} disabled={answered} value={v.exemplo} onChange={set("exemplo")} /></div>
+      <div className="space-y-1"><Label htmlFor={`fp-${field.id}`}>Pergunta</Label><Textarea id={`fp-${field.id}`} rows={2} maxLength={2000} disabled={answered} value={v.pergunta} onChange={set("pergunta")} /></div>
+      <div className="space-y-1"><Label htmlFor={`fd-${field.id}`}>Definição atual</Label><Textarea id={`fd-${field.id}`} rows={2} maxLength={2000} value={v.definicao_atual} onChange={set("definicao_atual")} /></div>
+      <div className="flex gap-2">
+        <Button size="sm" disabled={busy || !v.nome.trim()} onClick={async () => {
+          setBusy(true);
+          const patch = answered
+            ? { definicao_atual: v.definicao_atual.trim() || null }
+            : { nome: v.nome.trim(), o_que_e: v.o_que_e, exemplo: v.exemplo, pergunta: v.pergunta, definicao_atual: v.definicao_atual.trim() || null };
+          const { error } = await supabase.from("form_fields").update(patch).eq("id", field.id);
+          setBusy(false);
+          if (error) toast.error(answered ? "Este campo já tem respostas: só a definição atual pode mudar." : "Falha ao salvar.");
+          else { toast.success("Campo atualizado para todos."); setOpen(false); onSaved(); }
+        }}>Salvar campo</Button>
+        <Button size="sm" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+      </div>
     </div>
   );
 }
@@ -358,8 +441,8 @@ function FormsManager({ forms, onChanged }: { forms: Form[]; onChanged: () => vo
       slug: `${src.slug}-copia-${Date.now().toString(36)}`.slice(0, 80),
       titulo: `${src.titulo} (cópia)`, introducao: src.introducao, prazo: src.prazo,
       nomes: (rs ?? []).map((r) => r.nome),
-      campos: (fs ?? []).map(({ bloco, chave, nome, status, o_que_e, exemplo, pergunta, definicao_atual, comparativo }) =>
-        ({ bloco, chave, nome, status, o_que_e, exemplo, pergunta, definicao_atual, comparativo })),
+      campos: (fs ?? []).map(({ bloco, chave, nome, status, essencial, o_que_e, exemplo, pergunta, definicao_atual, comparativo }) =>
+        ({ bloco, chave, nome, status, essencial, o_que_e, exemplo, pergunta, definicao_atual, comparativo })),
     });
   };
 
