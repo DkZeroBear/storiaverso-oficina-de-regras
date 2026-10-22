@@ -20,7 +20,7 @@ const ICONS: Record<string, LucideIcon> = {
 export const fieldIcon = (chave: string): LucideIcon => ICONS[chave] ?? CircleDot;
 
 export const PARTICIPANT_PRIVACY =
-  "As respostas são vistas só pelo facilitador (Rodolfo), enquanto a opção de mostrar respostas do grupo estiver desligada.";
+  "As respostas são vistas somente pelo facilitador.";
 
 export function formatPrazo(prazo: string | null) {
   if (!prazo) return "Sem prazo definido";
