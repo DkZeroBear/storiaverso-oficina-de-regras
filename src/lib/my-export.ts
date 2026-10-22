@@ -1,4 +1,5 @@
-import { mdEscape } from "@/lib/export";
+import { mdBlock, mdEscape } from "@/lib/export";
+import { CONCORDANCIA_LABEL } from "@/lib/systems";
 
 export type MyExportField = { id: string; nome: string; bloco: string; ordem: number; status: string };
 export type MyExportResp = {

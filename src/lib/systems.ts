@@ -22,6 +22,10 @@ export const fieldIcon = (chave: string): LucideIcon => ICONS[chave] ?? CircleDo
 export const PARTICIPANT_PRIVACY =
   "As respostas são vistas somente pelo facilitador.";
 
+export const CONCORDANCIA_LABEL: Record<string, string> = {
+  concordo: "Concordo", ajustar: "Quero ajustar", sem_opiniao: "Não tenho opinião",
+};
+
 export function formatPrazo(prazo: string | null) {
   if (!prazo) return "Sem prazo definido";
   return new Date(prazo).toLocaleString("pt-BR", {
