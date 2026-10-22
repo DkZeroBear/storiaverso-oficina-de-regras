@@ -236,7 +236,7 @@ function Identify({ formId, roster, onDone }: { formId: string; roster: string[]
         <form onSubmit={submit} className="fade-up space-y-4 rounded-xl border bg-card p-5">
           <p className="flex items-center gap-2 text-sm">
             <Lock className="h-4 w-4 text-primary" />
-            {exists ? "Digite seu PIN para continuar de onde parou." : "Primeira vez: crie um PIN de 4 dígitos para voltar depois."}
+            {exists ? "Digite seu PIN para continuar de onde parou." : "Crie um PIN de 4 dígitos para voltar depois. Se o facilitador redefiniu seu PIN, suas respostas continuam guardadas."}
           </p>
           <div className="space-y-1">
             <Label htmlFor="pin">PIN</Label>
