@@ -64,3 +64,17 @@ describe("participant own export", () => {
     expect(myToMarkdown({ ...e, rascunho: false }, now)).not.toContain("Rascunho");
   });
 });
+
+describe("toMarkdown line breaks", () => {
+  it("keeps paragraphs in responses, síntese and decisão final", () => {
+    const md = toMarkdown(
+      "T",
+      [{ id: "f1", nome: "Campo", bloco: "1", ordem: 1 }],
+      [{ field_id: "f1", nome: "Ana", texto: "parágrafo um\n\nparágrafo dois", referencia: "", pulou: false, concordancia: null }],
+      [{ field_id: "f1", sintese: "linha A\nlinha B", status: "FECHADO", decisao_final: "decisão X\ndecisão Y" }],
+    );
+    expect(md).toContain("parágrafo um  \nparágrafo dois");
+    expect(md).toContain("linha A  \nlinha B");
+    expect(md).toContain("decisão X  \ndecisão Y");
+  });
+});
