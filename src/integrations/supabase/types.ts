@@ -165,8 +165,12 @@ export type Database = {
           form_id: string
           id: string
           nome: string
+          pin_criado_em: string | null
           pin_hash: string
           pin_salt: string
+          reset_code_expira: string | null
+          reset_code_hash: string
+          reset_code_salt: string
           sessao_versao: number
           status: string
           ultimo_campo: number
@@ -177,8 +181,12 @@ export type Database = {
           form_id: string
           id?: string
           nome: string
+          pin_criado_em?: string | null
           pin_hash: string
           pin_salt: string
+          reset_code_expira?: string | null
+          reset_code_hash?: string
+          reset_code_salt?: string
           sessao_versao?: number
           status?: string
           ultimo_campo?: number
@@ -189,8 +197,12 @@ export type Database = {
           form_id?: string
           id?: string
           nome?: string
+          pin_criado_em?: string | null
           pin_hash?: string
           pin_salt?: string
+          reset_code_expira?: string | null
+          reset_code_hash?: string
+          reset_code_salt?: string
           sessao_versao?: number
           status?: string
           ultimo_campo?: number
@@ -312,13 +324,17 @@ export type Database = {
         Args: { _participant_id: string }
         Returns: undefined
       }
-      admin_reset_pin: { Args: { _participant_id: string }; Returns: undefined }
+      admin_reset_pin: { Args: { _participant_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      pin_attempt_gate: {
+        Args: { _form: string; _nome: string }
+        Returns: string
       }
     }
     Enums: {
