@@ -15,6 +15,13 @@
       "when": 1792673221490,
       "tag": "0001_seed_oficina_de_regras",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792673248623,
+      "tag": "0002_first_user_admin",
+      "breakpoints": true
     }
   ]
 }
