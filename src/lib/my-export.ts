@@ -35,7 +35,7 @@ export function myToMarkdown(e: MyExport, now: Date): string {
     out.push(`## Bloco ${mdEscape(b.nome)}`, "");
     for (const { f, r } of b.items) {
       out.push(`### ${mdEscape(f.nome)}`, "");
-      if (f.status === "definido") out.push(`**Concordância:** ${r?.concordancia ? CONC[r.concordancia] : "—"}`, "");
+      if (f.status === "definido") out.push(`**Concordância:** ${r?.concordancia ? CONCORDANCIA_LABEL[r.concordancia] : "—"}`, "");
       if (r?.pulou) out.push("_(pulado)_", "");
       else {
         out.push(`**Resposta:** ${r?.texto.trim() ? mdBlock(r.texto) : "—"}`, "");
@@ -54,7 +54,7 @@ export function myToText(e: MyExport, now: Date): string {
     out.push(`--- Bloco ${b.nome} ---`, "");
     for (const { f, r } of b.items) {
       out.push(f.nome);
-      if (f.status === "definido") out.push(`  Concordância: ${r?.concordancia ? CONC[r.concordancia] : "—"}`);
+      if (f.status === "definido") out.push(`  Concordância: ${r?.concordancia ? CONCORDANCIA_LABEL[r.concordancia] : "—"}`);
       if (r?.pulou) out.push("  (pulado)");
       else {
         out.push(`  Resposta: ${r?.texto.trim() ? r.texto.replace(/\r?\n/g, "\n  ") : "—"}`);
