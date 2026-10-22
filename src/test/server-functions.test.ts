@@ -67,7 +67,7 @@ function pinGate({ _form, _nome }: { _form: string; _nome: string }) {
 function saveResp(a: any) {
   const err = (m: string) => ({ data: null, error: { message: m } });
   const p = (db.participants ?? []).find((r) => r.id === a._pid && r.sessao_versao === a._versao);
-  if (!p) return err("sessao_invalida");
+  if (!p || (a._form && a._form !== p.form_id)) return err("sessao_invalida");
   const f = (db.forms ?? []).find((r) => r.id === p.form_id);
   if (!f?.ativo) return err("formulario_indisponivel");
   if (f.prazo && Date.parse(f.prazo) < Date.now()) return err("prazo_encerrado");
