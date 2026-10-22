@@ -113,3 +113,18 @@
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
 }
+
+/* Participant "print / save as PDF" view */
+.print-only { display: none; }
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body.printing-mine > *:not(#print-root) { display: none !important; }
+  body.printing-mine #print-root .print-only { display: block !important; }
+  #print-mine { background: #fff; color: #111; font-family: Georgia, serif; font-size: 11pt; }
+  #print-mine h1 { font-size: 20pt; margin: 0 0 6pt; }
+  #print-mine h2 { font-size: 14pt; margin: 14pt 0 6pt; border-bottom: 1px solid #999; }
+  #print-mine h3 { font-size: 12pt; margin: 8pt 0 2pt; }
+  #print-mine p { margin: 2pt 0; }
+  #print-mine .print-field { break-inside: avoid; }
+  html, body { background: #fff !important; }
+}
