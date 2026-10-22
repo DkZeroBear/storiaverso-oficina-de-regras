@@ -22,6 +22,13 @@
       "when": 1792673248623,
       "tag": "0002_first_user_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792680313158,
+      "tag": "0003_remove_first_admin_trigger",
+      "breakpoints": true
     }
   ]
 }
