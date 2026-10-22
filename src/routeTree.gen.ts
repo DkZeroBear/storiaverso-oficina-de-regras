@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as TabelaRouteImport } from './routes/tabela'
 import { Route as FSlugRouteImport } from './routes/f.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TabelaRoute = TabelaRouteImport.update({
@@ -31,30 +37,34 @@ const FSlugRoute = FSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/tabela': typeof TabelaRoute
   '/f/$slug': typeof FSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/tabela': typeof TabelaRoute
   '/f/$slug': typeof FSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/tabela': typeof TabelaRoute
   '/f/$slug': typeof FSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/tabela' | '/f/$slug'
+  fullPaths: '/' | '/admin' | '/tabela' | '/f/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/tabela' | '/f/$slug'
-  id: '__root__' | '/' | '/tabela' | '/f/$slug'
+  to: '/' | '/admin' | '/tabela' | '/f/$slug'
+  id: '__root__' | '/' | '/admin' | '/tabela' | '/f/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   TabelaRoute: typeof TabelaRoute
   FSlugRoute: typeof FSlugRoute
 }
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tabela': {
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   TabelaRoute: TabelaRoute,
   FSlugRoute: FSlugRoute,
 }
