@@ -29,6 +29,13 @@
       "when": 1792680313158,
       "tag": "0003_remove_first_admin_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792680685043,
+      "tag": "0004_admin_pin_reset_delete_essencial",
+      "breakpoints": true
     }
   ]
 }
