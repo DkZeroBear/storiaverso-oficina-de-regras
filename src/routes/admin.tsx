@@ -175,7 +175,7 @@ function FormAdmin({ form, onChanged }: { form: Form; onChanged: () => void }) {
                     <td className="p-3">{p.nome}<span className="block text-xs text-muted-foreground">{p.pin_criado_em ? `PIN criado em ${new Date(p.pin_criado_em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}` : "PIN pendente (redefinido)"}</span></td>
                     <td className="p-3">{mine.filter(filled).length}/{fields.length}</td>
                     <td className="p-3">{mine.filter((r) => r.pulou).length}</td>
-                    <td className="p-3">{new Date(p.atualizado_em).toLocaleString("pt-BR")}</td>
+                    <td className="p-3">{new Date(p.atualizado_em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</td>
                     <td className="p-3">{p.status === "enviado" ? <span className="text-defined">enviado</span> : "rascunho"}</td>
                     <td className="p-3"><ParticipantActions p={p} onDone={load} /></td>
                   </tr>
