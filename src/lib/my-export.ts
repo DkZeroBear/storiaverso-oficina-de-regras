@@ -22,7 +22,7 @@ const mdBlock = (v: string) => v.split(/\r?\n/).map((l) => mdEscape(l)).join("  
 
 function grouped(e: MyExport) {
   const byField = new Map(e.responses.map((r) => [r.field_id, r]));
-  const blocks: { nome: string; items: { f: MyExportField; r?: MyExportResp }[] }[] = [];
+  const blocks: { nome: string; items: { f: MyExportField; r: MyExportResp | undefined }[] }[] = [];
   for (const f of [...e.fields].sort((a, b) => a.ordem - b.ordem)) {
     let b = blocks.find((x) => x.nome === f.bloco);
     if (!b) blocks.push((b = { nome: f.bloco, items: [] }));
