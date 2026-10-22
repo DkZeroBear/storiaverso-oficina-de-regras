@@ -336,6 +336,20 @@ export type Database = {
         Args: { _form: string; _nome: string }
         Returns: string
       }
+      save_response: {
+        Args: {
+          _concordancia: string
+          _field: string
+          _form?: string
+          _pid: string
+          _pulou: boolean
+          _referencia: string
+          _texto: string
+          _ultimo_campo: number
+          _versao: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin"

@@ -280,28 +280,33 @@ export const saveResponse = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const s = await auth(data.token);
-    await assertOpen(s.fid);
+    const s = await verifySession(data.token, secret());
+    if (!s) throw new Error(SAVE_ERRORS.sessao_invalida);
     const sb = await admin();
-    const { data: f } = await sb.from("form_fields").select("form_id").eq("id", data.field_id).single();
-    if (f?.form_id !== s.fid) throw new Error("Campo inválido.");
-    const now = new Date().toISOString();
-    const { error } = await sb.from("responses").upsert(
-      {
-        participant_id: s.pid,
-        field_id: data.field_id,
-        texto: data.pulou ? "" : data.texto,
-        referencia: data.pulou ? "" : data.referencia,
-        pulou: data.pulou,
-        concordancia: data.concordancia,
-        atualizado_em: now,
-      },
-      { onConflict: "participant_id,field_id" },
-    );
-    if (error) throw new Error("Falha ao salvar.");
-    await sb.from("participants").update({ atualizado_em: now, ultimo_campo: data.ultimo_campo }).eq("id", s.pid);
-    return { savedAt: now };
+    const { data: savedAt, error } = await sb.rpc("save_response", {
+      _pid: s.pid,
+      _versao: s.v ?? 0,
+      _field: data.field_id,
+      _texto: data.texto,
+      _referencia: data.referencia,
+      _pulou: data.pulou,
+      _concordancia: data.concordancia as string,
+      _ultimo_campo: data.ultimo_campo,
+      _form: s.fid,
+    });
+    if (error) {
+      const key = Object.keys(SAVE_ERRORS).find((k) => error.message?.includes(k)) as keyof typeof SAVE_ERRORS | undefined;
+      throw new Error(key ? SAVE_ERRORS[key] : "Falha ao salvar.");
+    }
+    return { savedAt: savedAt as string };
   });
+
+const SAVE_ERRORS = {
+  sessao_invalida: "Sessão expirada. Entre de novo com nome e PIN.",
+  formulario_indisponivel: "Formulário indisponível.",
+  prazo_encerrado: "O prazo de envio terminou.",
+  campo_invalido: "Campo inválido.",
+} as const;
 
 export const saveProgress = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>

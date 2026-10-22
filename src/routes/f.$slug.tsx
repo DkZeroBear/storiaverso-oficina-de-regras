@@ -6,7 +6,7 @@ import {
   ArrowLeft, ArrowRight, Check, ChevronDown, Clock, Lock, Save, ShieldCheck, Loader2,
 } from "lucide-react";
 import {
-  checkName, getGroupResponses, getPublicForm, getRequestOrigin, identify, resume, saveProgress, saveResponse,
+  checkName, getGroupResponses, getPublicForm, getRequestOrigin, identify, resume, saveProgress,
   submitResponses, type MyResponse, type MyState, type PublicField,
 } from "@/lib/oficina.functions";
 import { SYSTEMS, fieldIcon, formatPrazo, PARTICIPANT_PRIVACY } from "@/lib/systems";
@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { MyExportMenu, MyPrintView } from "@/components/MyExportMenu";
 import { formatNow, type MyExport } from "@/lib/my-export";
+import { useAutosave, type Autosave } from "@/hooks/use-autosave";
 import { createPortal } from "react-dom";
 import ogAsset from "@/assets/storiaverso-og.jpg.asset.json";
 
@@ -67,6 +68,22 @@ function FormPage() {
   const [step, setStep] = useState(0);
   const [focusIdx, setFocusIdx] = useState<number | null>(null);
   const resumeFn = useServerFn(resume);
+  const autosave = useAutosave(me?.token ?? "");
+  const progressFn = useServerFn(saveProgress);
+  const lastProgress = useRef<number | null>(null);
+  const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onCardFocus = (idx: number) => {
+    if (!me || idx === lastProgress.current) return;
+    if (progressTimer.current) clearTimeout(progressTimer.current);
+    progressTimer.current = setTimeout(() => {
+      lastProgress.current = idx;
+      progressFn({ data: { token: me.token, ultimo_campo: idx } }).catch(() => {});
+    }, 1000);
+  };
+  const flushThen = async (go: () => void) => {
+    try { await autosave.flushAll(); } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao salvar."); }
+    go();
+  };
   const [printData, setPrintData] = useState<MyExport | null>(null);
 
   useEffect(() => {
@@ -96,6 +113,7 @@ function FormPage() {
     const b = blocks.findIndex((bl) => bl.fields.some((f) => f.idx === idx));
     setStep(Math.max(0, b));
     setFocusIdx(idx);
+    lastProgress.current = s.ultimo_campo;
     setStage("form");
   };
 
@@ -128,7 +146,7 @@ function FormPage() {
           <ProgressBar filled={filled} total={form.fields.length} nome={me.nome}
             blocks={blocks.map((b) => ({ nome: b.nome, done: b.fields.every((f) => isFilled(resp[f.id])) }))}
             current={step}
-            onJump={(i) => { setFocusIdx(null); setStep(i); window.scrollTo(0, 0); }} />
+            onJump={(i) => flushThen(() => { setFocusIdx(null); setStep(i); window.scrollTo(0, 0); })} />
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <MyExportMenu token={me.token} onPrint={setPrintData} />
             {closed && <span className="text-sm text-muted-foreground">Prazo encerrado: modo leitura.</span>}
@@ -139,7 +157,8 @@ function FormPage() {
             stepLabel={`Etapa ${step + 1} de ${blocks.length}`}
             resp={resp}
             setResp={setResp}
-            token={me.token}
+            autosave={autosave}
+            onCardFocus={onCardFocus}
             readOnly={closed}
             focusIdx={focusIdx}
           />
@@ -148,18 +167,18 @@ function FormPage() {
               <Button
                 variant="outline"
                 disabled={step === 0}
-                onClick={() => { setFocusIdx(null); setStep(step - 1); window.scrollTo(0, 0); }}
+                onClick={() => flushThen(() => { setFocusIdx(null); setStep(step - 1); window.scrollTo(0, 0); })}
               >
                 <ArrowLeft className="h-4 w-4" /> Voltar
               </Button>
               <span className="text-sm text-muted-foreground">{filled} de {form.fields.length} campos</span>
               <Button
-                onClick={() => {
+                onClick={() => flushThen(() => {
                   setFocusIdx(null);
                   window.scrollTo(0, 0);
                   if (step < blocks.length - 1) setStep(step + 1);
                   else setStage("final");
-                }}
+                })}
               >
                 {step < blocks.length - 1 ? "Próximo" : "Revisar"} <ArrowRight className="h-4 w-4" />
               </Button>
@@ -172,6 +191,7 @@ function FormPage() {
           fields={form.fields}
           resp={resp}
           me={me}
+          flushAll={autosave.flushAll}
           closed={closed}
           mostrar={form.mostrar_respostas}
           onBack={() => { setStep(blocks.length - 1); setStage("form"); }}
@@ -322,7 +342,8 @@ function Block(props: {
   stepLabel: string;
   resp: Record<string, MyResponse>;
   setResp: React.Dispatch<React.SetStateAction<Record<string, MyResponse>>>;
-  token: string;
+  autosave: Autosave;
+  onCardFocus: (idx: number) => void;
   readOnly: boolean;
   focusIdx: number | null;
 }) {
@@ -344,42 +365,31 @@ function Block(props: {
   );
 }
 
-function FieldCard({ field, resp, setResp, token, readOnly }: {
+function FieldCard({ field, resp, setResp, autosave, onCardFocus, readOnly }: {
   field: PublicField & { idx: number };
   resp: Record<string, MyResponse>;
   setResp: React.Dispatch<React.SetStateAction<Record<string, MyResponse>>>;
-  token: string;
+  autosave: Autosave;
+  onCardFocus: (idx: number) => void;
   readOnly: boolean;
 }) {
   const r = resp[field.id] ?? emptyResp(field.id);
-  const [saved, setSaved] = useState<"idle" | "saving" | "saved">("idle");
+  const saved = autosave.status[field.id] ?? "idle";
   const [open, setOpen] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const save = useServerFn(saveResponse);
-  const progress = useServerFn(saveProgress);
   const Icon = fieldIcon(field.chave);
   const defined = field.status === "definido";
   const comp = (field.comparativo ?? {}) as Record<string, string>;
 
   const update = (patch: Partial<MyResponse>) => {
     const next = { ...r, ...patch };
+    if (next.pulou) next.concordancia = null;
     setResp((p) => ({ ...p, [field.id]: next }));
-    setSaved("saving");
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(async () => {
-      try {
-        await save({ data: { token, ...next, ultimo_campo: field.idx } });
-        setSaved("saved");
-      } catch (e) {
-        setSaved("idle");
-        toast.error(e instanceof Error ? e.message : "Falha ao salvar.");
-      }
-    }, 700);
+    autosave.schedule(field.id, { ...next, ultimo_campo: field.idx });
   };
 
   return (
     <article id={`campo-${field.idx}`} className="scroll-mt-24 space-y-4 rounded-xl border bg-card p-5 card-glow"
-      onFocusCapture={() => { progress({ data: { token, ultimo_campo: field.idx } }).catch(() => {}); }}>
+      onFocusCapture={() => onCardFocus(field.idx)}>
       <div className="flex flex-wrap items-center gap-2">
         <Icon className="h-5 w-5 text-primary" aria-hidden />
         <h3 className="text-xl">{field.nome}</h3>
@@ -453,17 +463,23 @@ function FieldCard({ field, resp, setResp, token, readOnly }: {
         <span className="flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite">
           {saved === "saving" && <><Save className="h-3 w-3" /> Salvando…</>}
           {saved === "saved" && <><Check className="h-3 w-3 text-defined" /> Salvo</>}
+          {saved === "error" && (
+            <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => autosave.retry(field.id)}>
+              Tentar de novo
+            </Button>
+          )}
         </span>
       </div>
     </article>
   );
 }
 
-function Final({ fields, resp, me, closed, mostrar, onBack, onSubmitted, onPrint }: {
+function Final({ fields, resp, me, flushAll, closed, mostrar, onBack, onSubmitted, onPrint }: {
   onPrint: (e: MyExport) => void;
   fields: PublicField[];
   resp: Record<string, MyResponse>;
   me: MyState;
+  flushAll: () => Promise<void>;
   closed: boolean;
   mostrar: boolean;
   onBack: () => void;
@@ -482,6 +498,13 @@ function Final({ fields, resp, me, closed, mostrar, onBack, onSubmitted, onPrint
 
   const send = async () => {
     setBusy(true);
+    try {
+      await flushAll();
+    } catch {
+      toast.error("Algumas respostas não foram salvas. Tente de novo.");
+      setBusy(false);
+      return;
+    }
     try {
       await submit({ data: { token: me.token } });
       setDone(true);

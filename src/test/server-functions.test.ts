@@ -63,9 +63,32 @@ function pinGate({ _form, _nome }: { _form: string; _nome: string }) {
   return { data: "ok", error: null };
 }
 
+/** Mirrors the SQL save_response: version, active, deadline, same-form field, upsert, clears when skipped. */
+function saveResp(a: any) {
+  const err = (m: string) => ({ data: null, error: { message: m } });
+  const p = (db.participants ?? []).find((r) => r.id === a._pid && r.sessao_versao === a._versao);
+  if (!p || (a._form && a._form !== p.form_id)) return err("sessao_invalida");
+  const f = (db.forms ?? []).find((r) => r.id === p.form_id);
+  if (!f?.ativo) return err("formulario_indisponivel");
+  if (f.prazo && Date.parse(f.prazo) < Date.now()) return err("prazo_encerrado");
+  if (!(db.form_fields ?? []).some((r) => r.id === a._field && r.form_id === p.form_id)) return err("campo_invalido");
+  const now = new Date().toISOString();
+  const row = {
+    participant_id: a._pid, field_id: a._field,
+    texto: a._pulou ? "" : a._texto, referencia: a._pulou ? "" : a._referencia,
+    pulou: a._pulou, concordancia: a._pulou ? null : a._concordancia, atualizado_em: now,
+  };
+  db.responses ??= [];
+  const ex = db.responses.find((r) => r.participant_id === a._pid && r.field_id === a._field);
+  if (ex) Object.assign(ex, row); else db.responses.push({ id: `id-${++seq}`, ...row });
+  Object.assign(p, { atualizado_em: now, ultimo_campo: a._ultimo_campo });
+  return { data: now, error: null };
+}
+
 const fakeAdmin = {
   from: (t: string) => new Q(t),
-  rpc: async (_n: string, args: any) => pinGate(args),
+  rpc: async (n: string, args: any) =>
+    n === "pin_attempt_gate" ? pinGate(args) : n === "save_response" ? saveResp(args) : { data: null, error: { message: "unknown rpc" } },
 };
 // pin_attempts inserts from the code need a timestamp
 const origFrom = fakeAdmin.from;
