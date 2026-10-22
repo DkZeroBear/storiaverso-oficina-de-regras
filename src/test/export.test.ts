@@ -70,11 +70,23 @@ describe("toMarkdown line breaks", () => {
     const md = toMarkdown(
       "T",
       [{ id: "f1", nome: "Campo", bloco: "1", ordem: 1 }],
-      [{ field_id: "f1", nome: "Ana", texto: "parágrafo um\n\nparágrafo dois", referencia: "", pulou: false, concordancia: null }],
+      [
+        { field_id: "f1", nome: "Ana", texto: "parágrafo um\n\nparágrafo dois", referencia: "", pulou: false, concordancia: null },
+        { field_id: "f1", nome: "Bruno", texto: "resposta do Bruno", referencia: "", pulou: false, concordancia: null },
+      ],
       [{ field_id: "f1", sintese: "linha A\nlinha B", status: "FECHADO", decisao_final: "decisão X\ndecisão Y" }],
     );
-    expect(md).toContain("parágrafo um  \n  \nparágrafo dois");
+    // Ana's second paragraph stays inside her item, indented by two spaces, so the
+    // list goes on with Bruno instead of breaking in two.
+    const lines = md.split("\n");
+    const start = lines.findIndex((l) => l.startsWith("- Ana:"));
+    expect(start).toBeGreaterThan(-1);
+    expect(lines[start].replace(/ +$/, "")).toBe("- Ana: parágrafo um");
+    expect(lines[start + 1]).toBe("");
+    expect(lines[start + 2]).toBe("  parágrafo dois");
+    expect(lines[start + 3]).toBe("- Bruno: resposta do Bruno");
     expect(md).toContain("linha A  \nlinha B");
     expect(md).toContain("decisão X  \ndecisão Y");
   });
 });
+
