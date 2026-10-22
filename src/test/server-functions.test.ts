@@ -68,6 +68,7 @@ function saveResp(a: any) {
   const err = (m: string) => ({ data: null, error: { message: m } });
   const p = (db.participants ?? []).find((r) => r.id === a._pid && r.sessao_versao === a._versao);
   if (!p || (a._form && a._form !== p.form_id)) return err("sessao_invalida");
+  if (!(db.form_roster ?? []).some((r) => r.form_id === p.form_id && r.nome === p.nome)) return err("sessao_invalida");
   const f = (db.forms ?? []).find((r) => r.id === p.form_id);
   if (!f?.ativo) return err("formulario_indisponivel");
   if (f.prazo && Date.parse(f.prazo) < Date.now()) return err("prazo_encerrado");
@@ -172,6 +173,13 @@ describe("tokens", () => {
     db.participants!.find((p) => p.id === "pA")!.sessao_versao = 1;
     await expect(save(t)).rejects.toThrow(SESSION_ERR);
     await expect(fns.resume({ data: { token: t } })).resolves.toBeNull();
+  });
+  it("revokes access when the name is removed from the roster", async () => {
+    const t = await tok("pA");
+    db.form_roster = db.form_roster!.filter((r) => r.nome !== "Diogo");
+    await expect(save(t)).rejects.toThrow(SESSION_ERR);
+    await expect(fns.resume({ data: { token: t } })).resolves.toBeNull();
+    await expect(fns.exportMine({ data: { token: t } })).rejects.toThrow(SESSION_ERR);
   });
 });
 

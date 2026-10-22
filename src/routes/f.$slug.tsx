@@ -9,7 +9,7 @@ import {
   checkName, getGroupResponses, getPublicForm, getRequestOrigin, identify, resume, saveProgress,
   submitResponses, type MyResponse, type MyState, type PublicField,
 } from "@/lib/oficina.functions";
-import { SYSTEMS, fieldIcon, formatPrazo, PARTICIPANT_PRIVACY } from "@/lib/systems";
+import { SYSTEMS, fieldIcon, formatPrazo, PARTICIPANT_PRIVACY, CONCORDANCIA_LABEL } from "@/lib/systems";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
