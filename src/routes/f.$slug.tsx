@@ -15,6 +15,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { MyExportMenu, MyPrintView } from "@/components/MyExportMenu";
+import { formatNow, type MyExport } from "@/lib/my-export";
+import { createPortal } from "react-dom";
 import ogAsset from "@/assets/storiaverso-og.jpg.asset.json";
 
 export const Route = createFileRoute("/f/$slug")({
@@ -64,6 +67,16 @@ function FormPage() {
   const [step, setStep] = useState(0);
   const [focusIdx, setFocusIdx] = useState<number | null>(null);
   const resumeFn = useServerFn(resume);
+  const [printData, setPrintData] = useState<MyExport | null>(null);
+
+  useEffect(() => {
+    if (!printData) return;
+    document.body.classList.add("printing-mine");
+    const done = () => { document.body.classList.remove("printing-mine"); setPrintData(null); };
+    window.addEventListener("afterprint", done, { once: true });
+    const t = setTimeout(() => window.print(), 50);
+    return () => { clearTimeout(t); window.removeEventListener("afterprint", done); document.body.classList.remove("printing-mine"); };
+  }, [printData]);
 
   const blocks = useMemo(() => {
     const m: { nome: string; fields: (PublicField & { idx: number })[] }[] = [];
@@ -116,6 +129,10 @@ function FormPage() {
             blocks={blocks.map((b) => ({ nome: b.nome, done: b.fields.every((f) => isFilled(resp[f.id])) }))}
             current={step}
             onJump={(i) => { setFocusIdx(null); setStep(i); window.scrollTo(0, 0); }} />
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <MyExportMenu token={me.token} onPrint={setPrintData} />
+            {closed && <span className="text-sm text-muted-foreground">Prazo encerrado: modo leitura.</span>}
+          </div>
           <Block
             key={step}
             block={blocks[step] ?? { nome: "", fields: [] }}
@@ -159,8 +176,11 @@ function FormPage() {
           mostrar={form.mostrar_respostas}
           onBack={() => { setStep(blocks.length - 1); setStage("form"); }}
           onSubmitted={(enviado) => setMe({ ...me, status: enviado ? "enviado" : me.status })}
+          onPrint={setPrintData}
         />
       )}
+      {printData && typeof document !== "undefined" &&
+        createPortal(<div id="print-root"><MyPrintView data={printData} now={formatNow(new Date())} /></div>, document.body)}
     </main>
   );
 }
@@ -427,7 +447,8 @@ function FieldCard({ field, resp, setResp, token, readOnly }: {
   );
 }
 
-function Final({ fields, resp, me, closed, mostrar, onBack, onSubmitted }: {
+function Final({ fields, resp, me, closed, mostrar, onBack, onSubmitted, onPrint }: {
+  onPrint: (e: MyExport) => void;
   fields: PublicField[];
   resp: Record<string, MyResponse>;
   me: MyState;
@@ -483,6 +504,7 @@ function Final({ fields, resp, me, closed, mostrar, onBack, onSubmitted }: {
       ) : null}
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={onBack}><ArrowLeft className="h-4 w-4" /> Voltar e editar</Button>
+        <MyExportMenu token={me.token} onPrint={onPrint} />
         <Button onClick={send} disabled={busy || closed}>
           {busy && <Loader2 className="h-4 w-4 animate-spin" />} {done ? "Enviar de novo" : "Enviar respostas"}
         </Button>

@@ -37,3 +37,30 @@ describe("session token scope", () => {
     expect(await verifySession(forged, "s")).toBeNull();
   });
 });
+
+import { myToMarkdown, myToText } from "@/lib/my-export";
+describe("participant own export", () => {
+  const e = {
+    titulo: "Oficina", nome: "Ana", rascunho: true,
+    fields: [
+      { id: "a", nome: "Atributos", bloco: "B1", ordem: 1, status: "definido" },
+      { id: "b", nome: "Dano", bloco: "B1", ordem: 2, status: "proposta" },
+    ],
+    responses: [
+      { field_id: "a", texto: "*forte*", referencia: "D&D", pulou: false, concordancia: "ajustar" },
+      { field_id: "b", texto: "", referencia: "", pulou: true, concordancia: null },
+    ],
+  };
+  const now = new Date("2026-10-22T15:00:00Z");
+  it("marks draft, skipped and agreement", () => {
+    const md = myToMarkdown(e, now);
+    expect(md).toContain("Rascunho (não enviado)");
+    expect(md).toContain("_(pulado)_");
+    expect(md).toContain("**Concordância:** quero ajustar");
+    expect(md).toContain("\\*forte\\*");
+    expect(myToText(e, now)).toContain("RASCUNHO (NÃO ENVIADO)");
+  });
+  it("omits draft notice once sent", () => {
+    expect(myToMarkdown({ ...e, rascunho: false }, now)).not.toContain("Rascunho");
+  });
+});
