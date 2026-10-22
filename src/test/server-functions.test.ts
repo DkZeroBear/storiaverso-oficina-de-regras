@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { signSession, hashPin, SESSION_TTL_MS } from "@/lib/security";
 
