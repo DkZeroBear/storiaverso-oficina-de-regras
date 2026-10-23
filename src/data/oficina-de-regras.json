@@ -304,6 +304,36 @@
         "swade": "ação rápida, pulp, flexível e cinematográfica"
       },
       "essencial": false
+    },
+    {
+      "bloco": "E · Ficha e fechamento",
+      "chave": "ficha",
+      "nome": "Ficha do personagem",
+      "status": "propor",
+      "essencial": true,
+      "o_que_e": "O documento que cada jogador usa durante a partida. Reúne tudo o que se consulta ou se marca na mesa: identidade do personagem, atributos, perícias, recursos, poderes e equipamento.",
+      "exemplo": "Nome e conceito em uma frase; Força, Reflexo e Astúcia; três especialidades; Vida (6 marcações) e Fôlego (3); poderes; equipamento; objetivo pessoal.",
+      "pergunta": "O que não pode faltar na ficha do nosso jogo? Liste os espaços que ela deve ter e, se quiser, como imagina a organização.",
+      "definicao_atual": null,
+      "comparativo": {
+        "dnd": "Seis atributos e seus modificadores, bônus de proficiência, perícias, Classe de Armadura, pontos de vida, iniciativa, deslocamento, ataques, magias, equipamento, antecedente e traços de personalidade.",
+        "ordem": "Cinco atributos, NEX, pontos de vida, pontos de esforço, sanidade, defesa, perícias com grau de treinamento, rituais, inventário com limite de carga, origem, classe e trilha.",
+        "fabula": "Identidade, tema e origem do personagem, quatro atributos representados por dados (d6 a d12), pontos de vida, mente e inventário, laços com outros personagens, classes com suas habilidades e equipamento.",
+        "tdet": "Três atributos (Poder, Habilidade e Resistência), pontos de ação, mana e vida, perícias, vantagens, desvantagens, técnicas e arquétipo.",
+        "swade": "Cinco atributos e as perícias representados por dados, Aparar, Resistência, Movimentação, vantagens, complicações, benes, ferimentos e fadiga."
+      }
+    },
+    {
+      "bloco": "E · Ficha e fechamento",
+      "chave": "lacunas",
+      "nome": "O que ficou de fora",
+      "status": "propor",
+      "essencial": false,
+      "o_que_e": "Espaço livre para o que este questionário não cobriu: uma mecânica, um elemento da ficha, uma dúvida ou uma preocupação com o sistema.",
+      "exemplo": "",
+      "pergunta": "Existe algo que você considera necessário no sistema ou na ficha e que não foi abordado aqui? O que e por quê?",
+      "definicao_atual": null,
+      "comparativo": {}
     }
   ]
 }
