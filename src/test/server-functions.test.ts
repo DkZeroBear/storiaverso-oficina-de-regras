@@ -86,10 +86,33 @@ function saveResp(a: any) {
   return { data: now, error: null };
 }
 
+const normalize = (n: string) => n.trim().toLowerCase();
+function resolveName(a: any) {
+  const roster = (db.form_roster ?? []).find((r) => r.form_id === a._form && normalize(r.nome) === normalize(a._nome));
+  const p = (db.participants ?? []).find((r) => r.form_id === a._form && normalize(r.nome) === normalize(a._nome));
+  return { data: [{ nome_lista: roster?.nome ?? null, participante_id: p?.id ?? null, tem_pin: !!p?.pin_hash }], error: null };
+}
+function createParticipant(a: any) {
+  const err = (m: string) => ({ data: null, error: { message: m } });
+  const f = (db.forms ?? []).find((r) => r.id === a._form);
+  if (!f?.ativo) return err("formulario_indisponivel");
+  if (f.prazo && Date.parse(f.prazo) < Date.now()) return err("prazo_encerrado");
+  if ((db.participants ?? []).some((r) => r.form_id === a._form && normalize(r.nome) === normalize(a._nome))) return err("nome_existente");
+  let r = (db.form_roster ?? []).find((r) => r.form_id === a._form && normalize(r.nome) === normalize(a._nome));
+  if (!r) {
+    if ((db.form_roster ?? []).filter((r) => r.form_id === a._form).length >= 50) return err("lista_cheia");
+    r = { id: `r-${++seq}`, form_id: a._form, nome: a._nome.trim() };
+    (db.form_roster ??= []).push(r);
+  }
+  const id = `p-${++seq}`;
+  (db.participants ??= []).push({ id, ...DEFAULTS.participants, form_id: a._form, nome: r.nome, pin_hash: a._pin_hash, pin_salt: a._pin_salt, pin_criado_em: new Date().toISOString() });
+  return { data: id, error: null };
+}
+
 const fakeAdmin = {
   from: (t: string) => new Q(t),
   rpc: async (n: string, args: any) =>
-    n === "pin_attempt_gate" ? pinGate(args) : n === "save_response" ? saveResp(args) : { data: null, error: { message: "unknown rpc" } },
+    n === "resolver_nome" ? resolveName(args) : n === "criar_participante" ? createParticipant(args) : n === "pin_attempt_gate" ? pinGate(args) : n === "save_response" ? saveResp(args) : { data: null, error: { message: "unknown rpc" } },
 };
 // pin_attempts inserts from the code need a timestamp
 const origFrom = fakeAdmin.from;
@@ -99,6 +122,7 @@ fakeAdmin.from = (t: string) => {
   return q;
 };
 
+vi.mock("@supabase/supabase-js", () => ({ createClient: () => fakeAdmin }));
 vi.mock("@/integrations/supabase/client.server", () => ({ supabaseAdmin: fakeAdmin }));
 vi.mock("@tanstack/react-start/server", () => ({ getRequest: () => new Request("http://localhost/") }));
 vi.mock("@tanstack/react-start", () => ({
@@ -130,7 +154,7 @@ const save = (token: string, field_id = FIELD_A) =>
 beforeEach(async () => {
   for (const k of Object.keys(db)) delete db[k];
   db.forms = [
-    { id: FA, titulo: "Form A", ativo: true, prazo: future(), mostrar_respostas: false },
+    { id: FA, slug: "form-a", titulo: "Form A", ativo: true, prazo: future(), mostrar_respostas: false },
     { id: FB, titulo: "Form B", ativo: true, prazo: future(), mostrar_respostas: false },
   ];
   db.form_fields = [
@@ -253,5 +277,66 @@ describe("PIN lockout", () => {
   it("right PIN before 5 failures logs in", async () => {
     for (let i = 0; i < 4; i++) await fns.identify({ data: { formId: FA, nome: "Diogo", pin: "0000" } });
     await expect(fns.identify({ data: { formId: FA, nome: "Diogo", pin: "1234" } })).resolves.toMatchObject({ ok: true });
+  });
+});
+
+
+describe("confirmed name registration", () => {
+  const enter = (nome: string, criar?: boolean) => fns.identify({ data: { formId: FA, nome, pin: "1234", criar } });
+  it("new name without confirmation writes nothing", async () => {
+    const before = JSON.stringify(db);
+    await expect(enter("  Nova   Pessoa  ")).resolves.toEqual({ ok: false, novo: true, nome: "Nova Pessoa" });
+    expect(JSON.stringify(db)).toBe(before);
+  });
+  it("confirmed new name returns a valid session that can save", async () => {
+    const r = await enter("Nova Pessoa", true);
+    expect(r.ok).toBe(true);
+    if (!r.ok) throw new Error("Expected successful registration");
+    await expect(save(r.state.token)).resolves.toHaveProperty("savedAt");
+    await expect(enter("  NOVA   pessoa  ")).resolves.toMatchObject({ ok: true, state: { nome: "Nova Pessoa", responses: [{ texto: "oi" }] } });
+    expect(db.participants.filter((p) => p.nome === "Nova Pessoa")).toHaveLength(1);
+  });
+  it("trimmed lowercase name logs into the existing Diogo account", async () => {
+    await expect(enter(" diogo ")).resolves.toMatchObject({ ok: true, state: { nome: "Diogo" } });
+  });
+  it("pre-registered name asks for confirmation and keeps its spelling", async () => {
+    db.form_roster.push({ id: "r3", form_id: FA, nome: "Ana" });
+    await expect(enter(" ana ")).resolves.toEqual({ ok: false, novo: true, nome: "Ana" });
+    expect(db.participants).toHaveLength(2);
+  });
+  it("removed name cannot log in even with criar true", async () => {
+    db.form_roster = db.form_roster.filter((r) => r.nome !== "Diogo");
+    await expect(enter("diogo", true)).resolves.toEqual({ ok: false, error: "Este nome foi bloqueado pelo facilitador." });
+    expect(db.form_roster).toHaveLength(1);
+  });
+  it("public form does not return roster or read its table", async () => {
+    process.env["SUPABASE_PUBLISHABLE_KEY"] = "test-public-key";
+    process.env["SUPABASE_URL"] = "https://example.invalid";
+    const spy = vi.spyOn(fakeAdmin, "from");
+    const r = await fns.getPublicForm({ data: { slug: "form-a" } });
+    expect(r?.id).toBe(FA);
+    expect(r).not.toHaveProperty("roster");
+    expect(spy.mock.calls.map(([table]) => table)).not.toContain("form_roster");
+    spy.mockRestore();
+  });
+  it("rejects control characters and names outside 2 to 60 characters", async () => {
+    for (const n of ["a", "a".repeat(61), "Ana\nMaria", "Ana\u007f"]) await expect(enter(n, true)).rejects.toThrow();
+    expect(db.participants).toHaveLength(2);
+  });
+  it("does not create a name after the deadline", async () => {
+    db.forms[0].prazo = new Date(Date.now() - 1000).toISOString();
+    await expect(enter("Nova Pessoa", true)).resolves.toMatchObject({ ok: false, error: "O prazo de envio terminou." });
+    expect(db.participants).toHaveLength(2);
+  });
+  it("does not create a 51st name but allows an unused pre-registered name", async () => {
+    db.form_roster = Array.from({ length: 50 }, (_, i) => ({ id: `r${i}`, form_id: FA, nome: `Pessoa ${i}` }));
+    await expect(enter("Outra Pessoa", true)).resolves.toMatchObject({ ok: false, error: "A lista de participantes está completa. Fale com o facilitador." });
+    expect(db.form_roster).toHaveLength(50);
+    await expect(enter("Pessoa 0", true)).resolves.toMatchObject({ ok: true });
+    expect(db.form_roster).toHaveLength(50);
+  });
+  it("creation RPC rejects normalized duplicates", () => {
+    expect(createParticipant({ _form: FA, _nome: " diogo ", _pin_hash: "hash", _pin_salt: "salt" })).toMatchObject({ error: { message: "nome_existente" } });
+    expect(db.participants).toHaveLength(2);
   });
 });
