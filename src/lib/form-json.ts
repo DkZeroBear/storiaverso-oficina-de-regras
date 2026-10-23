@@ -5,7 +5,7 @@ export const formJsonSchema = z.object({
   titulo: z.string().trim().min(1).max(200),
   introducao: z.string().max(4000).default(""),
   prazo: z.string().datetime({ offset: true }).nullable().optional(),
-  nomes: z.array(z.string().trim().min(1).max(100)).min(1).max(50),
+  nomes: z.array(z.string().trim().min(1).max(100)).max(50).default([]),
   campos: z
     .array(
       z.object({
