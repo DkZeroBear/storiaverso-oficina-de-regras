@@ -78,6 +78,13 @@
       "when": 1792769845999,
       "tag": "0010_private_names_confirmed_registration",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792771037035,
+      "tag": "0011_update_oficina_exemplos",
+      "breakpoints": true
     }
   ]
 }
