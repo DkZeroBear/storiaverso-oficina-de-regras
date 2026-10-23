@@ -405,7 +405,8 @@ function Settings({ form, onChanged }: { form: Form; onChanged: () => void }) {
         <p className="text-xs text-muted-foreground">Link público: /f/{form.slug}</p>
       </div>
       <div className="space-y-3 rounded-xl border bg-card p-4">
-        <h2 className="text-lg">Participantes</h2>
+        <h2 className="text-lg">Nomes</h2>
+        <p className="text-sm text-muted-foreground">As pessoas criam o próprio acesso com nome e PIN. Você pode pré-cadastrar nomes. Remover um nome bloqueia o acesso de quem o usa.</p>
         <ul className="space-y-1">
           {roster.map((r) => (
             <li key={r.id} className="flex items-center justify-between text-sm">
@@ -420,7 +421,7 @@ function Settings({ form, onChanged }: { form: Form; onChanged: () => void }) {
           e.preventDefault();
           const n = novo.trim(); if (!n || n.length > 100) return;
           const { error } = await supabase.from("form_roster").insert({ form_id: form.id, nome: n });
-          if (error) toast.error("Não foi possível adicionar."); else { setNovo(""); loadRoster(); }
+          if (error) toast.error(error.code === "23505" ? "Esse nome já existe." : "Não foi possível adicionar."); else { setNovo(""); loadRoster(); }
         }}>
           <Input aria-label="Novo nome" placeholder="Novo nome" maxLength={100} value={novo} onChange={(e) => setNovo(e.target.value)} />
           <Button type="submit" size="sm"><Plus className="h-4 w-4" /></Button>
@@ -442,7 +443,9 @@ function FormsManager({ forms, onChanged }: { forms: Form[]; onChanged: () => vo
       .insert({ slug: d.slug, titulo: d.titulo, introducao: d.introducao, prazo: d.prazo ?? null, ativo: true })
       .select("id").single();
     if (error || !f) { toast.error(error?.code === "23505" ? "Já existe um formulário com esse slug." : "Falha ao criar."); return false; }
-    const r1 = await supabase.from("form_roster").insert(d.nomes.map((nome) => ({ form_id: f.id, nome })));
+    const r1 = d.nomes.length
+      ? await supabase.from("form_roster").insert(d.nomes.map((nome) => ({ form_id: f.id, nome })))
+      : { error: null };
     const r2 = await supabase.from("form_fields").insert(d.campos.map((c, i) => ({ ...c, definicao_atual: c.definicao_atual ?? null, ordem: i + 1, form_id: f.id })));
     if (r1.error || r2.error) { await supabase.from("forms").delete().eq("id", f.id); toast.error("Falha ao criar campos."); return false; }
     toast.success(`Criado em /f/${d.slug}`);

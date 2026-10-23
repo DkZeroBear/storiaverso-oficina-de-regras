@@ -48,7 +48,6 @@ export type PublicForm = {
   prazo: string | null;
   mostrar_respostas: boolean;
   fields: PublicField[];
-  roster: string[];
 };
 
 /* ---------- Public reads ---------- */
@@ -77,11 +76,8 @@ async function loadPublicForm(by: { slug: string } | { latest: true }): Promise<
   q = "slug" in by ? q.eq("slug", by.slug) : q.order("created_at", { ascending: false }).limit(1);
   const { data: form } = await q.maybeSingle();
   if (!form) return null;
-  const [{ data: fields }, { data: roster }] = await Promise.all([
-    sb.from("form_fields").select("*").eq("form_id", form.id).order("ordem"),
-    sb.from("form_roster").select("nome").eq("form_id", form.id).order("nome"),
-  ]);
-  return { ...form, fields: fields ?? [], roster: (roster ?? []).map((r) => r.nome) };
+  const { data: fields } = await sb.from("form_fields").select("*").eq("form_id", form.id).order("ordem");
+  return { ...form, fields: fields ?? [] };
 }
 
 export const getPublicForm = createServerFn({ method: "GET" })
@@ -92,22 +88,6 @@ export const getPublicForm = createServerFn({ method: "GET" })
 export const getLatestPublicForm = createServerFn({ method: "GET" }).handler(async () => loadPublicForm({ latest: true }));
 
 /* ---------- Participant identity ---------- */
-
-export const checkName = createServerFn({ method: "POST" })
-  .inputValidator((d: { formId: string; nome: string }) =>
-    z.object({ formId: z.string().uuid(), nome: z.string().trim().min(1).max(100) }).parse(d),
-  )
-  .handler(async ({ data }) => {
-    const sb = await admin();
-    const { data: p } = await sb
-      .from("participants")
-      .select("pin_hash")
-      .eq("form_id", data.formId)
-      .eq("nome", data.nome)
-      .maybeSingle();
-    // exists = has a PIN set; reset = PIN was reset and needs the facilitator's one-time code
-    return { exists: !!p && p.pin_hash !== "", reset: !!p && p.pin_hash === "" };
-  });
 
 export type MyResponse = {
   field_id: string;
@@ -135,62 +115,74 @@ async function loadState(pid: string, token: string): Promise<MyState> {
     .from("responses")
     .select("field_id,texto,referencia,pulou,concordancia")
     .eq("participant_id", pid);
+  if (!p) throw new Error("Não foi possível entrar. Tente de novo.");
   return {
     token,
-    nome: p!.nome,
-    status: p!.status as MyState["status"],
-    ultimo_campo: p!.ultimo_campo,
+    nome: p.nome,
+    status: p.status as MyState["status"],
+    ultimo_campo: p.ultimo_campo,
     responses: (rs ?? []) as MyResponse[],
   };
 }
 
-export const identify = createServerFn({ method: "POST" })
-  .inputValidator((d: { formId: string; nome: string; pin: string; codigo?: string }) =>
-    z
-      .object({
-        formId: z.string().uuid(),
-        nome: z.string().trim().min(1).max(100),
-        pin: z.string().regex(PIN_REGEX, "PIN deve ter 4 dígitos"),
-        codigo: z.string().trim().toUpperCase().max(12).optional(),
-      })
-      .parse(d),
-  )
-  .handler(async ({ data }): Promise<{ ok: true; state: MyState } | { ok: false; error: string; needCode?: boolean }> => {
-    const sb = await admin();
-    const [{ data: form }, { data: inRoster }, { data: p }] = await Promise.all([
-      sb.from("forms").select("id,ativo").eq("id", data.formId).maybeSingle(),
-      sb.from("form_roster").select("id").eq("form_id", data.formId).eq("nome", data.nome).maybeSingle(),
-      sb
-        .from("participants")
-        .select("id,pin_hash,pin_salt,sessao_versao,reset_code_hash,reset_code_salt,reset_code_expira")
-        .eq("form_id", data.formId)
-        .eq("nome", data.nome)
-        .maybeSingle(),
-    ]);
-    if (!form?.ativo) return { ok: false, error: "Formulário indisponível." };
-    if (!inRoster) return { ok: false, error: "Nome não está na lista." };
+export type IdentifyResult =
+  | { ok: true; state: MyState }
+  | { ok: false; error?: string; needCode?: boolean; novo?: boolean; nome?: string };
 
+export const identify = createServerFn({ method: "POST" })
+  .inputValidator((d: { formId: string; nome: string; pin: string; criar?: boolean; codigo?: string }) =>
+    z.object({
+      formId: z.string().uuid(),
+      nome: z.string().refine((n) => !/[\u0000-\u001f\u007f-\u009f]/.test(n), "Nome inválido.")
+        .transform((n) => n.trim().replace(/\s+/g, " ")).pipe(z.string().min(2).max(60)),
+      pin: z.string().regex(PIN_REGEX, "PIN deve ter 4 dígitos"),
+      criar: z.boolean().optional(),
+      codigo: z.string().trim().toUpperCase().max(12).optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data }): Promise<IdentifyResult> => {
+    const sb = await admin();
+    const { data: form } = await sb.from("forms").select("id,ativo").eq("id", data.formId).maybeSingle();
+    if (!form?.ativo) return { ok: false, error: "Formulário indisponível." };
+    const { data: resolved, error: resolveError } = await sb.rpc("resolver_nome", { _form: data.formId, _nome: data.nome });
+    const match = resolved?.[0];
+    if (resolveError || !match) return { ok: false, error: "Não foi possível entrar. Tente de novo." };
+    if (match.participante_id && !match.nome_lista)
+      return { ok: false, error: "Este nome foi bloqueado pelo facilitador." };
+    const nome = match.nome_lista ?? data.nome;
     const now = new Date().toISOString();
-    if (!p) {
+    if (!match.participante_id) {
+      if (data.criar !== true) return { ok: false, novo: true, nome };
       const salt = newSalt();
-      const { data: created, error } = await sb
-        .from("participants")
-        .insert({ form_id: data.formId, nome: data.nome, pin_salt: salt, pin_hash: await hashPin(data.pin, salt), pin_criado_em: now })
-        .select("id")
-        .single();
-      if (error || !created) return { ok: false, error: "Não foi possível criar o acesso." };
-      const token = await signSession({ pid: created.id, fid: data.formId, v: 0, exp: Date.now() + SESSION_TTL_MS }, secret());
-      return { ok: true, state: await loadState(created.id, token) };
+      const { data: pid, error } = await sb.rpc("criar_participante", {
+        _form: data.formId, _nome: nome, _pin_salt: salt, _pin_hash: await hashPin(data.pin, salt),
+      });
+      if (error || !pid) {
+        const errors: Record<string, string> = {
+          formulario_indisponivel: "Formulário indisponível.",
+          prazo_encerrado: "O prazo de envio terminou.",
+          lista_cheia: "A lista de participantes está completa. Fale com o facilitador.",
+          nome_existente: "Esse nome acabou de ser criado. Tente entrar de novo.",
+        };
+        const key = Object.keys(errors).find((k) => error?.message.includes(k));
+        return { ok: false, error: (key ? errors[key] : undefined) ?? "Não foi possível criar o acesso." };
+      }
+      const token = await signSession({ pid, fid: data.formId, v: 0, exp: Date.now() + SESSION_TTL_MS }, secret());
+      return { ok: true, state: await loadState(pid, token) };
     }
+    const { data: p } = await sb.from("participants")
+      .select("id,pin_hash,pin_salt,sessao_versao,reset_code_hash,reset_code_salt,reset_code_expira")
+      .eq("id", match.participante_id).maybeSingle();
+    if (!p) return { ok: false, error: "Não foi possível entrar. Tente de novo." };
 
     // Atomic rate limit: records a failure up front, serialized per form+name
-    const { data: gate, error: gateErr } = await sb.rpc("pin_attempt_gate", { _form: data.formId, _nome: data.nome });
+    const { data: gate, error: gateErr } = await sb.rpc("pin_attempt_gate", { _form: data.formId, _nome: nome });
     if (gateErr || !gate) return { ok: false, error: "Não foi possível entrar. Tente de novo." };
     if (gate.startsWith("bloqueado")) {
       const until = Date.parse(gate.replace("bloqueado até ", ""));
       return { ok: false, error: lockMessage(Math.max(1, Math.ceil((until - Date.now()) / 60000))) };
     }
-    const markOk = () => sb.from("pin_attempts").insert({ form_id: data.formId, nome: data.nome, sucesso: true });
+    const markOk = () => sb.from("pin_attempts").insert({ form_id: data.formId, nome, sucesso: true });
 
     let v = p.sessao_versao;
     if (p.pin_hash === "") {

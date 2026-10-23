@@ -325,6 +325,15 @@ export type Database = {
         Returns: undefined
       }
       admin_reset_pin: { Args: { _participant_id: string }; Returns: string }
+      criar_participante: {
+        Args: {
+          _form: string
+          _nome: string
+          _pin_hash: string
+          _pin_salt: string
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -335,6 +344,14 @@ export type Database = {
       pin_attempt_gate: {
         Args: { _form: string; _nome: string }
         Returns: string
+      }
+      resolver_nome: {
+        Args: { _form: string; _nome: string }
+        Returns: {
+          nome_lista: string
+          participante_id: string
+          tem_pin: boolean
+        }[]
       }
       save_response: {
         Args: {
