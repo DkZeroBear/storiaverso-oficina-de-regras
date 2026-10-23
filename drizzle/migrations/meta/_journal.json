@@ -71,6 +71,13 @@
       "when": 1792700473600,
       "tag": "0009_save_response_roster_check",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792769845999,
+      "tag": "0010_private_names_confirmed_registration",
+      "breakpoints": true
     }
   ]
 }
