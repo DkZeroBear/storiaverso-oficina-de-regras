@@ -9,7 +9,7 @@ import {
   getGroupResponses, getPublicForm, getRequestOrigin, identify, resume, saveProgress,
   submitResponses, type MyResponse, type MyState, type PublicField,
 } from "@/lib/oficina.functions";
-import { SYSTEMS, fieldIcon, formatPrazo, PARTICIPANT_PRIVACY, CONCORDANCIA_LABEL } from "@/lib/systems";
+import { SYSTEMS, fieldIcon, hasComparativo, formatPrazo, PARTICIPANT_PRIVACY, CONCORDANCIA_LABEL } from "@/lib/systems";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -393,7 +393,7 @@ function FieldCard({ field, resp, setResp, autosave, onCardFocus, readOnly }: {
         <p className="terminal-label">O que é</p>
         <p className="mt-1">{field.o_que_e}</p>
       </div>
-      <div className="rounded-lg border">
+      {hasComparativo(comp) && <div className="rounded-lg border">
         <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
           className="flex w-full items-center justify-between px-3 py-2 text-left text-sm">
           Como outros sistemas fazem <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
@@ -408,11 +408,11 @@ function FieldCard({ field, resp, setResp, autosave, onCardFocus, readOnly }: {
             ))}
           </dl>
         )}
-      </div>
-      <div className="rounded-lg border border-dashed p-3">
+      </div>}
+      {field.exemplo.trim() && <div className="rounded-lg border border-dashed p-3">
         <p className="terminal-label">Exemplo</p>
         <p className="mt-1 text-sm italic text-muted-foreground">{field.exemplo}</p>
-      </div>
+      </div>}
       {defined && field.definicao_atual && (
         <div className="rounded-lg border-l-4 border-defined bg-muted p-3">
           <p className="terminal-label">Definição atual do grupo</p>
