@@ -18,7 +18,7 @@
       "nome": "Motor de resolução",
       "status": "propor",
       "o_que_e": "A regra principal de como se decide se uma ação dá certo: quais dados se rolam e como se calcula o resultado.",
-      "exemplo": "Rola-se 2d8 e soma-se o nível de Pilotagem. O resultado é comparado com a tempestade do dia.",
+      "exemplo": "Role 2d6 e some o atributo usado. Com 10 ou mais, a ação dá certo; de 7 a 9, dá certo, mas com um custo; com 6 ou menos, falha e o mestre complica a cena.",
       "pergunta": "Que dado ou combinação de dados deve decidir o resultado das ações no nosso jogo, e por quê?",
       "comparativo": {
         "dnd": "1d20 + bônus",
@@ -35,7 +35,7 @@
       "nome": "Dados principais",
       "status": "propor",
       "o_que_e": "Quais tipos de dado aparecem na mesa (d4, d6, d8, d10, d12, d20…).",
-      "exemplo": "Só d6 e d12: o d6 para tarefas comuns e o d12 para as heróicas.",
+      "exemplo": "Só d6. Todo teste usa 2d6; vantagens acrescentam um terceiro dado, e o jogador fica com os dois maiores.",
       "pergunta": "Quais dados usaremos e que papel cada um tem?",
       "comparativo": {
         "dnd": "d20",
@@ -52,7 +52,7 @@
       "nome": "Atributos",
       "status": "propor",
       "o_que_e": "As características básicas que descrevem o personagem (força, mente, etc.). Poucos atributos deixam a ficha simples; muitos permitem mais especialização.",
-      "exemplo": "Três atributos: Vento (agilidade), Casco (resistência) e Bússola (percepção).",
+      "exemplo": "Três atributos: Força, Reflexo e Astúcia, com valores de −1 a +3.",
       "pergunta": "Quantos atributos o jogo deve ter e quais são, dado o nosso mundo?",
       "comparativo": {
         "dnd": "6",
@@ -69,7 +69,7 @@
       "nome": "Função dos atributos",
       "status": "propor",
       "o_que_e": "Como o valor de um atributo entra na rolagem (somando número, mudando o tamanho do dado ou a quantidade de dados).",
-      "exemplo": "Cada ponto de Vento troca o dado de Pilotagem por um maior (d4, d6, d8…).",
+      "exemplo": "O valor do atributo é somado à rolagem: com Reflexo +2, pilotar no meio de uma tempestade é 2d6+2.",
       "pergunta": "Como o atributo deve influenciar a rolagem?",
       "comparativo": {
         "dnd": "modificadores numéricos",
@@ -86,7 +86,7 @@
       "nome": "Perícias",
       "status": "propor",
       "o_que_e": "Habilidades específicas treináveis (hackear, investigar, esconder-se). Complementam os atributos.",
-      "exemplo": "Dez perícias fixas; cada uma soma +2 se o personagem for treinado.",
+      "exemplo": "Não há lista fixa. Cada personagem escreve três especialidades livres, como “cartografia celeste”; quando uma delas se aplica, o teste ganha vantagem.",
       "pergunta": "O jogo terá perícias? Se sim, como funcionam e se ligam aos atributos?",
       "comparativo": {
         "dnd": "proficiência + atributo",
@@ -103,7 +103,7 @@
       "nome": "Dificuldade",
       "status": "propor",
       "o_que_e": "O número ou critério que a rolagem precisa alcançar. Pode ser fixo, definido pelo mestre ou em oposição a outra rolagem.",
-      "exemplo": "O mestre escolhe entre Calmaria (6), Vento Forte (10) e Tempestade (14).",
+      "exemplo": "As faixas do teste são sempre as mesmas. Tarefas mais difíceis impõem −1 ou −2 na rolagem, e o mestre avisa antes de rolar.",
       "pergunta": "Quem define a dificuldade, como é medida e que nome ela deve ter no nosso jogo?",
       "comparativo": {
         "dnd": "CD",
@@ -120,7 +120,7 @@
       "nome": "Defesa",
       "status": "propor",
       "o_que_e": "O que torna um personagem mais difícil de atingir ou ferir (armadura, esquiva, bloqueio).",
-      "exemplo": "Defesa = 8 + armadura; gastando um turno, a pessoa pode 'manobrar' para somar +3.",
+      "exemplo": "Não existe número de defesa. Quando é atacado, o personagem rola Reflexo: com 10 ou mais, escapa ileso; de 7 a 9, sofre metade do dano.",
       "pergunta": "Como o personagem se protege? É um número fixo, uma escolha em cena ou os dois?",
       "comparativo": {
         "dnd": "Classe de Armadura",
@@ -137,7 +137,7 @@
       "nome": "Combate",
       "status": "propor",
       "o_que_e": "A estrutura das cenas de luta: quem age quando, quão tático ou rápido é.",
-      "exemplo": "Rodadas curtas; cada pessoa faz uma ação principal e uma ação rápida.",
+      "exemplo": "Sem turnos fixos: o mestre passa a vez de personagem em personagem conforme a cena, e os inimigos agem quando alguém tira 9 ou menos.",
       "pergunta": "Como deve ser o combate: tático, rápido, abstrato? Todos agem em turnos individuais ou em grupo?",
       "comparativo": {
         "dnd": "turnos individuais, tático",
@@ -154,7 +154,7 @@
       "nome": "Iniciativa",
       "status": "propor",
       "o_que_e": "Como se decide a ordem de ação no início do combate.",
-      "exemplo": "Cada pessoa rola Vento; quem tira mais age primeiro. Inimigos agem por último, em bloco.",
+      "exemplo": "Não há rolagem de iniciativa: quem provocou o confronto age primeiro, e depois a vez segue a ordem da mesa.",
       "pergunta": "Como a ordem dos turnos deve ser decidida e que nome ela pode ter no nosso mundo?",
       "comparativo": {
         "dnd": "individual",
@@ -171,7 +171,7 @@
       "nome": "Dano",
       "status": "propor",
       "o_que_e": "Como se calcula o estrago de um ataque ou efeito e o que ele atinge.",
-      "exemplo": "Armas têm um dado de dano (d4 a d10) somado ao nível do atirador.",
+      "exemplo": "Cada arma causa dano fixo: faca 1, pistola 2, canhão de convés 4. A armadura reduz o dano recebido em 1 ou 2.",
       "pergunta": "Como o dano deve ser calculado e o que ele atinge (corpo, mente, outro recurso)?",
       "comparativo": {
         "dnd": "dados de dano",
@@ -188,7 +188,7 @@
       "nome": "Recursos",
       "status": "propor",
       "o_que_e": "O que se gasta ou se perde durante o jogo (vida, energia, sanidade, tempo…).",
-      "exemplo": "Dois recursos: Casco (vida) e Combustível (energia para manobras).",
+      "exemplo": "Vida, com 6 marcações, e Fôlego, com 3 pontos que permitem rolar um teste de novo. O Fôlego volta inteiro após uma noite em terra firme.",
       "pergunta": "Quais recursos o jogo terá, o que cada um mede e como se recuperam?",
       "comparativo": {
         "dnd": "PV, magias, habilidades",
@@ -205,7 +205,7 @@
       "nome": "Poderes",
       "status": "definido",
       "o_que_e": "As habilidades especiais e sobrenaturais dos personagens.",
-      "exemplo": "Cada poder tem um nome, um custo e um efeito, como 'Rajada de Vento'.",
+      "exemplo": "Cada poder tem nome, custo e efeito. Rajada: gaste 1 de Fôlego para empurrar um inimigo próximo para fora do convés.",
       "definicao_atual": "Manifestação, Função, Glitch e comando por assistente virtual.",
       "pergunta": "Concorda com a definição? Que ajuste faria?",
       "comparativo": {
@@ -223,7 +223,7 @@
       "nome": "Classes",
       "status": "definido",
       "o_que_e": "Arquétipos de personagem que agrupam poderes e perícias.",
-      "exemplo": "Três classes: Piloto, Mecânica e Navegadora, cada uma com 5 habilidades.",
+      "exemplo": "Três classes: Piloto, Mecânica e Navegadora. Cada uma começa com duas habilidades e ganha mais uma a cada avanço.",
       "definicao_atual": "Mentalista, Mecânico, Naturalista, Físico e Suporte.",
       "pergunta": "Concorda? Há algo a ajustar (nomes, combinações, multiclasse)?",
       "comparativo": {
@@ -241,7 +241,7 @@
       "nome": "Progressão",
       "status": "propor",
       "o_que_e": "Como o personagem evolui ao longo da campanha.",
-      "exemplo": "A cada missão cumprida, o grupo escolhe uma melhoria para o dirigível.",
+      "exemplo": "Ao fim de cada sessão, o personagem marca 1 de experiência se perseguiu seu objetivo pessoal. Com 5 marcas, ganha um avanço: +1 num atributo ou uma nova habilidade.",
       "pergunta": "Como o personagem deve evoluir: por níveis, por marcos da história, por upgrades?",
       "comparativo": {
         "dnd": "níveis 1–20",
@@ -258,7 +258,7 @@
       "nome": "Falhas críticas",
       "status": "definido",
       "o_que_e": "O que acontece quando uma rolagem falha de forma extrema.",
-      "exemplo": "Tirar 1 nos dois dados faz o dirigível perder a vela.",
+      "exemplo": "Tirar 1 nos dois dados é um desastre: além de falhar, o personagem sofre uma consequência imediata, como perder o equipamento que estava usando.",
       "definicao_atual": "Glitch exige confirmação adicional após falha crítica.",
       "pergunta": "Concorda? Que consequências um glitch deveria ter?",
       "comparativo": {
@@ -276,7 +276,7 @@
       "nome": "Risco adicional",
       "status": "propor",
       "o_que_e": "Os perigos próprios do mundo além do dano comum (sanidade, exposição, perda de memória…).",
-      "exemplo": "Ao voar sem rota, o grupo acumula 'Desorientação', que atrapalha as rolagens.",
+      "exemplo": "Voar acima das nuvens por muito tempo marca Frio. Com 3 marcas, os testes físicos sofrem −1 até o grupo descer e se aquecer.",
       "pergunta": "Que riscos extras devem existir no nosso mundo e quais são as consequências?",
       "comparativo": {
         "dnd": "morte, condições, exaustão",
@@ -293,7 +293,7 @@
       "nome": "Ênfase de design",
       "status": "definido",
       "o_que_e": "O tipo de experiência que o jogo quer entregar (ação, investigação, estratégia, narrativa).",
-      "exemplo": "Aventura de exploração com tomada de decisão em equipe e ritmo rápido.",
+      "exemplo": "Aventura de exploração e saque, em ritmo rápido, com decisões tomadas em grupo. O combate existe, mas é curto e perigoso.",
       "definicao_atual": "Thriller de investigação, infiltração e conflito velado.",
       "pergunta": "Concorda? O que está faltando ou sobrando?",
       "comparativo": {
