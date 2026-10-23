@@ -165,7 +165,7 @@ export const identify = createServerFn({ method: "POST" })
           nome_existente: "Esse nome acabou de ser criado. Tente entrar de novo.",
         };
         const key = Object.keys(errors).find((k) => error?.message.includes(k));
-        return { ok: false, error: key ? errors[key] : "Não foi possível criar o acesso." };
+        return { ok: false, error: (key ? errors[key] : undefined) ?? "Não foi possível criar o acesso." };
       }
       const token = await signSession({ pid, fid: data.formId, v: 0, exp: Date.now() + SESSION_TTL_MS }, secret());
       return { ok: true, state: await loadState(pid, token) };
