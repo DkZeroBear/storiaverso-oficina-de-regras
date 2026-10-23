@@ -410,8 +410,8 @@ function FieldCard({ field, resp, setResp, autosave, onCardFocus, readOnly }: {
         )}
       </div>
       <div className="rounded-lg border border-dashed p-3">
-        <p className="terminal-label">Exemplo de formato, não é sugestão para o nosso jogo</p>
-        <p className="mt-1 text-sm italic text-muted-foreground">Piratas de dirigíveis: “{field.exemplo}”</p>
+        <p className="terminal-label">Exemplo</p>
+        <p className="mt-1 text-sm italic text-muted-foreground">{field.exemplo}</p>
       </div>
       {defined && field.definicao_atual && (
         <div className="rounded-lg border-l-4 border-defined bg-muted p-3">
