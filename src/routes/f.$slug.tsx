@@ -6,7 +6,7 @@ import {
   ArrowLeft, ArrowRight, Check, ChevronDown, Clock, Lock, Save, ShieldCheck, Loader2,
 } from "lucide-react";
 import {
-  checkName, getGroupResponses, getPublicForm, getRequestOrigin, identify, resume, saveProgress,
+  getGroupResponses, getPublicForm, getRequestOrigin, identify, resume, saveProgress,
   submitResponses, type MyResponse, type MyState, type PublicField,
 } from "@/lib/oficina.functions";
 import { SYSTEMS, fieldIcon, formatPrazo, PARTICIPANT_PRIVACY, CONCORDANCIA_LABEL } from "@/lib/systems";
@@ -140,7 +140,7 @@ function FormPage() {
       </header>
 
       {stage === "welcome" && <Welcome form={form} closed={closed} onStart={() => setStage("identify")} />}
-      {stage === "identify" && <Identify formId={form.id} roster={form.roster} onDone={enter} />}
+      {stage === "identify" && <Identify formId={form.id} onDone={enter} />}
       {stage === "form" && me && (
         <>
           <ProgressBar filled={filled} total={form.fields.length} nome={me.nome}
@@ -228,86 +228,75 @@ function Welcome({ form, closed, onStart }: { form: { introducao: string; prazo:
   );
 }
 
-function Identify({ formId, roster, onDone }: { formId: string; roster: string[]; onDone: (s: MyState) => void }) {
+function Identify({ formId, onDone }: { formId: string; onDone: (s: MyState) => void }) {
   const [nome, setNome] = useState("");
-  const [exists, setExists] = useState<boolean | null>(null);
+  const [newName, setNewName] = useState<string | null>(null);
   const [reset, setReset] = useState(false);
   const [codigo, setCodigo] = useState("");
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const check = useServerFn(checkName);
   const ident = useServerFn(identify);
-
-  const pick = async (n: string) => {
-    setNome(n); setErr(""); setPin(""); setPin2(""); setCodigo(""); setExists(null);
-    const r = await check({ data: { formId, nome: n } });
-    setReset(r.reset);
-    setExists(r.exists);
-  };
+  const initial = () => { setNewName(null); setReset(false); setPin2(""); setCodigo(""); setErr(""); };
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr("");
     if (!/^\d{4}$/.test(pin)) return setErr("O PIN deve ter 4 dígitos.");
-    if (!exists && pin !== pin2) return setErr("Os PINs não coincidem.");
+    if ((newName !== null || reset) && pin !== pin2) return setErr("Os PINs não coincidem.");
     if (reset && codigo.trim().length !== 6) return setErr("Digite o código de 6 caracteres que o facilitador te enviou.");
     setBusy(true);
     try {
-      const r = await ident({ data: { formId, nome, pin, ...(reset ? { codigo: codigo.trim() } : {}) } });
+      const r = await ident({ data: { formId, nome, pin, ...(newName !== null ? { criar: true } : {}), ...(reset ? { codigo: codigo.trim() } : {}) } });
       if (r.ok) onDone(r.state);
-      else setErr(r.error);
+      else {
+        if (r.novo && r.nome) { setNewName(r.nome); setPin2(""); }
+        if (r.needCode) { setReset(true); setNewName(null); setPin2(""); }
+        setErr(r.error ?? "");
+      }
     } catch {
       setErr("Não foi possível entrar. Tente de novo.");
-    } finally {
-      setBusy(false);
-    }
+    } finally { setBusy(false); }
   };
 
   return (
     <section className="fade-up space-y-6">
       <div>
         <h2 className="text-2xl">Quem é você?</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Escolha o seu próprio nome e crie o PIN agora. Se o seu nome já estiver em uso sem ter sido você, avise o facilitador.</p>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {roster.map((n) => (
-            <Button key={n} variant={nome === n ? "default" : "outline"} onClick={() => pick(n)} aria-pressed={nome === n}>
-              {n}
-            </Button>
-          ))}
-        </div>
+        <p className="mt-2 text-sm text-muted-foreground">Entre com o seu nome e um PIN de 4 dígitos. Na primeira vez, o acesso é criado com esse PIN. Nas próximas, use o mesmo nome e PIN para continuar de onde parou.</p>
       </div>
-      {nome && exists !== null && (
-        <form onSubmit={submit} className="fade-up space-y-4 rounded-xl border bg-card p-5">
-          <p className="flex items-center gap-2 text-sm">
-            <Lock className="h-4 w-4 text-primary" />
-            {exists ? "Digite seu PIN para continuar de onde parou." : reset ? "Seu PIN foi redefinido. Digite o código que o facilitador te enviou e crie um PIN novo. Suas respostas continuam guardadas." : "Crie um PIN de 4 dígitos para voltar depois."}
-          </p>
-          {reset && (
-            <div className="space-y-1">
-              <Label htmlFor="codigo">Código do facilitador</Label>
-              <Input id="codigo" autoComplete="off" autoCapitalize="characters" maxLength={6} value={codigo}
-                onChange={(e) => setCodigo(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} className="max-w-[12rem] text-center text-xl tracking-[0.3em]" />
-            </div>
-          )}
+      <form onSubmit={submit} className="space-y-4">
+        <div className="space-y-1">
+          <Label htmlFor="nome">Seu nome</Label>
+          <Input id="nome" maxLength={60} autoComplete="name" required disabled={busy} value={nome}
+            onChange={(e) => { setNome(e.target.value); initial(); }} />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="pin">{reset ? "Novo PIN" : "PIN"}</Label>
+          <Input id="pin" inputMode="numeric" autoComplete="off" maxLength={4} required disabled={busy} value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} className="max-w-[10rem] text-center text-xl" />
+        </div>
+        {newName !== null && <p className="text-sm">É seu primeiro acesso como <b>{newName}</b>? Repita o PIN para criar seu acesso.</p>}
+        {reset && (
           <div className="space-y-1">
-            <Label htmlFor="pin">{reset ? "Novo PIN" : "PIN"}</Label>
-            <Input id="pin" inputMode="numeric" autoComplete="off" maxLength={4} value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} className="max-w-[10rem] text-center text-xl tracking-[0.5em]" />
+            <Label htmlFor="codigo">Código do facilitador</Label>
+            <Input id="codigo" autoComplete="off" autoCapitalize="characters" maxLength={6} disabled={busy} value={codigo}
+              onChange={(e) => setCodigo(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} className="max-w-[12rem] text-center text-xl" />
           </div>
-          {!exists && (
-            <div className="space-y-1">
-              <Label htmlFor="pin2">Repita o PIN</Label>
-              <Input id="pin2" inputMode="numeric" autoComplete="off" maxLength={4} value={pin2}
-                onChange={(e) => setPin2(e.target.value.replace(/\D/g, ""))} className="max-w-[10rem] text-center text-xl tracking-[0.5em]" />
-            </div>
-          )}
-          {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
-          <Button type="submit" disabled={busy}>
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />} Entrar
-          </Button>
-        </form>
-      )}
+        )}
+        {(newName !== null || reset) && (
+          <div className="space-y-1">
+            <Label htmlFor="pin2">{reset ? "Repita o novo PIN" : "Repita o PIN"}</Label>
+            <Input id="pin2" inputMode="numeric" autoComplete="off" maxLength={4} disabled={busy} value={pin2}
+              onChange={(e) => setPin2(e.target.value.replace(/\D/g, ""))} className="max-w-[10rem] text-center text-xl" />
+          </div>
+        )}
+        {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="submit" disabled={busy}>{busy && <Loader2 className="h-4 w-4 animate-spin" />}{newName !== null ? "Criar acesso" : "Entrar"}</Button>
+          {newName !== null && <Button type="button" variant="link" disabled={busy} onClick={initial}>Não, corrigir o nome</Button>}
+        </div>
+      </form>
     </section>
   );
 }
