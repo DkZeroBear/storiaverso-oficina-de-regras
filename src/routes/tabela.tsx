@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { getLatestPublicForm } from "@/lib/oficina.functions";
-import { SYSTEMS, fieldIcon } from "@/lib/systems";
+import { SYSTEMS, fieldIcon, hasComparativo } from "@/lib/systems";
 
 export const Route = createFileRoute("/tabela")({
   head: () => ({
@@ -29,7 +29,7 @@ function Tabela() {
       <h1 className="mt-2 text-3xl">Tabela comparativa</h1>
       <p className="mt-2 text-muted-foreground">Como cinco sistemas resolvem cada mecânica.</p>
       <div className="mt-8 space-y-3">
-        {form.fields.map((f) => {
+        {form.fields.filter((f) => hasComparativo(f.comparativo)).map((f) => {
           const Icon = fieldIcon(f.chave);
           const c = (f.comparativo ?? {}) as Record<string, string>;
           return (
